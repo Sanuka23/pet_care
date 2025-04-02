@@ -233,7 +233,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildPetProfileCard(Pet pet) {
     return Card(
-      elevation: 4,
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -241,60 +242,82 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               children: [
                 CircleAvatar(
-                  radius: 40,
-                  backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                  radius: 35,
+                  backgroundColor: Colors.grey[100],
                   backgroundImage: pet.imageUrl != null ? FileImage(File(pet.imageUrl!)) : null,
                   child: pet.imageUrl == null
                       ? Icon(
                           Icons.pets,
-                          size: 40,
-                          color: Theme.of(context).primaryColor,
+                          size: 35,
+                          color: Colors.grey[600],
                         )
                       : null,
                 ),
-                const SizedBox(width: 10),
-                Text(
-                  pet.name,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        pet.name,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${pet.breed}, ${pet.age} years old, ${pet.weight} kg',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 5),
-            Text(
-              '${pet.breed}, ${pet.age} years old, ${pet.weight} kg',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
             if (pet.specialNeeds != null && pet.specialNeeds!.isNotEmpty) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Wrap(
                 spacing: 6,
+                runSpacing: 6,
                 children: pet.specialNeeds!.map((need) => Chip(
-                  label: Text(need),
-                  backgroundColor: Colors.blue.shade50,
+                  label: Text(
+                    need,
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  backgroundColor: Colors.grey[100],
+                  labelStyle: TextStyle(color: Colors.grey[800]),
                 )).toList(),
               ),
             ],
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PetProfileScreen(pet: pet),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.edit),
-                  label: const Text('Edit'),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PetProfileScreen(pet: pet),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.edit, size: 18),
+                    label: const Text('Edit Profile'),
+                  ),
                 ),
-                const SizedBox(width: 10),
-                OutlinedButton.icon(
-                  onPressed: _showPetSelector,
-                  icon: const Icon(Icons.pets),
-                  label: const Text('Switch Pet'),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _showPetSelector,
+                    icon: const Icon(Icons.pets, size: 18),
+                    label: const Text('Switch Pet'),
+                  ),
                 ),
               ],
             ),
@@ -391,346 +414,31 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildQuickActionCard(String title, IconData icon, VoidCallback onTap) {
-    // If this is the Vaccinations card, show next vaccination date if available
-    if (title == 'Vaccinations') {
-      // Get current pet and vaccination provider
-      final petProvider = Provider.of<PetProvider>(context, listen: false);
-      final vaccinationProvider = Provider.of<VaccinationProvider>(context, listen: false);
-      final currentPet = petProvider.currentPet;
-      
-      if (currentPet != null) {
-        // Get next vaccination for current pet
-        final nextVaccination = vaccinationProvider.getNextVaccinationForPet(currentPet.id);
-        
-        if (nextVaccination != null) {
-          // Format date for display
-          final formattedDate = DateFormat('MMM dd, yyyy').format(nextVaccination.nextDueDate);
-          
-          return InkWell(
-            onTap: onTap,
-            child: Card(
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(icon, size: 32, color: Theme.of(context).primaryColor),
-                    const SizedBox(height: 4),
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Next: $formattedDate',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    Text(
-                      nextVaccination.name,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 12),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }
-      }
-    }
-    
-    // If this is the Appointments card, show next appointment if available
-    if (title == 'Appointments') {
-      // Get current pet and appointment provider
-      final petProvider = Provider.of<PetProvider>(context, listen: false);
-      final appointmentProvider = Provider.of<AppointmentProvider>(context, listen: false);
-      final currentPet = petProvider.currentPet;
-      
-      if (currentPet != null) {
-        // Get next appointment for current pet
-        final nextAppointment = appointmentProvider.getNextAppointmentForPet(currentPet.id);
-        
-        if (nextAppointment != null) {
-          // Format date and time for display
-          final formattedDate = DateFormat('MMM dd').format(nextAppointment.dateTime);
-          final formattedTime = DateFormat('h:mm a').format(nextAppointment.dateTime);
-          
-          return InkWell(
-            onTap: onTap,
-            child: Card(
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(icon, size: 32, color: Theme.of(context).primaryColor),
-                    const SizedBox(height: 4),
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Next: $formattedDate $formattedTime',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    Text(
-                      nextAppointment.title,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 12),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }
-      }
-    }
-    
-    // If this is the Playdates card, show next playdate if available
-    if (title == 'Playdates') {
-      // Get current pet and playdate provider
-      final petProvider = Provider.of<PetProvider>(context, listen: false);
-      final playdateProvider = Provider.of<PlaydateProvider>(context, listen: false);
-      final currentPet = petProvider.currentPet;
-      
-      if (currentPet != null) {
-        // Get upcoming playdates for current pet
-        final upcomingPlaydates = playdateProvider.getUpcomingPlaydatesForPet(currentPet.id);
-        
-        // Sort by date to get the next one
-        if (upcomingPlaydates.isNotEmpty) {
-          upcomingPlaydates.sort((a, b) => a.date.compareTo(b.date));
-          final nextPlaydate = upcomingPlaydates.first;
-          
-          // Format date and time for display
-          final formattedDate = DateFormat('MMM dd').format(nextPlaydate.date);
-          final formattedTime = DateFormat('h:mm a').format(nextPlaydate.date);
-          
-          return InkWell(
-            onTap: onTap,
-            child: Card(
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(icon, size: 32, color: Theme.of(context).primaryColor),
-                    const SizedBox(height: 4),
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Next: $formattedDate $formattedTime',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    Text(
-                      nextPlaydate.title,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 12),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }
-      }
-    }
-    
-    // If this is the Feeding card, show next feeding time if available
-    if (title == 'Feeding') {
-      // Get current pet and feeding provider
-      final petProvider = Provider.of<PetProvider>(context, listen: false);
-      final feedingProvider = Provider.of<FeedingProvider>(context, listen: false);
-      final currentPet = petProvider.currentPet;
-      
-      if (currentPet != null) {
-        // Get active schedules for current pet
-        final activeSchedules = feedingProvider.getActiveSchedulesForPet(currentPet.id);
-        
-        if (activeSchedules.isNotEmpty) {
-          // Find the next feeding time
-          final now = DateTime.now();
-          final currentHour = now.hour;
-          final currentMinute = now.minute;
-          
-          // Flatten all feeding times from all schedules
-          final allFeedingTimes = <Map<String, dynamic>>[];
-          
-          for (final schedule in activeSchedules) {
-            for (final time in schedule.times) {
-              // Calculate when the next occurrence of this time will be
-              var nextOccurrence = DateTime(
-                now.year, 
-                now.month, 
-                now.day, 
-                time.hour, 
-                time.minute
-              );
-              
-              // If this time is already past for today, set it for tomorrow
-              if (time.hour < currentHour || (time.hour == currentHour && time.minute <= currentMinute)) {
-                nextOccurrence = nextOccurrence.add(const Duration(days: 1));
-              }
-              
-              allFeedingTimes.add({
-                'schedule': schedule,
-                'time': time,
-                'nextOccurrence': nextOccurrence,
-              });
-            }
-          }
-          
-          // Sort by next occurrence time
-          allFeedingTimes.sort((a, b) {
-            return (a['nextOccurrence'] as DateTime).compareTo(b['nextOccurrence'] as DateTime);
-          });
-          
-          if (allFeedingTimes.isNotEmpty) {
-            final nextFeeding = allFeedingTimes.first;
-            final schedule = nextFeeding['schedule'] as FeedingSchedule;
-            final nextOccurrence = nextFeeding['nextOccurrence'] as DateTime;
-            
-            // Format date and time for display
-            final isToday = nextOccurrence.day == now.day && 
-                          nextOccurrence.month == now.month &&
-                          nextOccurrence.year == now.year;
-            
-            final formattedDate = isToday ? 'Today' : 'Tomorrow';
-            final formattedTime = DateFormat('h:mm a').format(nextOccurrence);
-            
-            return InkWell(
-              onTap: onTap,
-              child: Card(
-                elevation: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(icon, size: 32, color: Theme.of(context).primaryColor),
-                      const SizedBox(height: 4),
-                      Text(
-                        title,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Next: $formattedDate, $formattedTime',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      Text(
-                        schedule.name,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 12),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }
-        }
-      }
-    }
-    
-    // If this is the Activity card, show next activity if available
-    if (title == 'Activity') {
-      // Get current pet and activity provider
-      final petProvider = Provider.of<PetProvider>(context, listen: false);
-      final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
-      final currentPet = petProvider.currentPet;
-      
-      if (currentPet != null) {
-        // Get upcoming activities for current pet
-        final upcomingActivities = activityProvider.getUpcomingActivitiesForPet(currentPet.id);
-        
-        // Sort by date to get the next one
-        if (upcomingActivities.isNotEmpty) {
-          upcomingActivities.sort((a, b) => a.date.compareTo(b.date));
-          final nextActivity = upcomingActivities.first;
-          
-          // Format date and time for display
-          final formattedDate = DateFormat('MMM dd').format(nextActivity.date);
-          final formattedTime = DateFormat('h:mm a').format(nextActivity.date);
-          
-          return InkWell(
-            onTap: onTap,
-            child: Card(
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(icon, size: 32, color: Theme.of(context).primaryColor),
-                    const SizedBox(height: 4),
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Next: $formattedDate $formattedTime',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    Text(
-                      '${nextActivity.name} (${nextActivity.type})',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 12),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }
-      }
-    }
-    
-    // Default card without special info
-    return InkWell(
-      onTap: onTap,
-      child: Card(
-        elevation: 2,
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.all(4),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(12.0),
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 40, color: Theme.of(context).primaryColor),
+              Icon(
+                icon,
+                size: 32,
+                color: Colors.grey[800],
+              ),
               const SizedBox(height: 8),
               Text(
                 title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey[800],
+                ),
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -836,9 +544,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ];
             
             // Sort by date (newest first)
-            allActivities.sort((a, b) => 
-              (b['date'] as DateTime).compareTo(a['date'] as DateTime)
-            );
+            allActivities.sort((a, b) {
+              return (b['date'] as DateTime).compareTo(a['date'] as DateTime);
+            });
             
             if (allActivities.isEmpty) {
               return Column(
