@@ -137,9 +137,9 @@ class _HomeScreenState extends State<HomeScreen> {
               label: 'Activity',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.settings_outlined),
-              activeIcon: Icon(Icons.settings),
-              label: 'Settings',
+              icon: Icon(Icons.calendar_month_outlined),
+              activeIcon: Icon(Icons.calendar_month),
+              label: 'Schedule',
             ),
           ],
           currentIndex: _currentIndex,
@@ -162,9 +162,9 @@ class _HomeScreenState extends State<HomeScreen> {
       case 2:
         return const FeedingScreen();
       case 3:
-        return const ActivityScreen();
+        return const PlaydateScreen();
       case 4:
-        return const AppointmentScreen();
+        return const ActivityScreen();
       default:
         return _buildHomeContent();
     }
@@ -201,8 +201,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              _buildDateSelector(),
-              const SizedBox(height: 24),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Column(
@@ -239,14 +237,14 @@ class _HomeScreenState extends State<HomeScreen> {
     final days = _getDaysOfWeek();
     final today = DateTime.now();
     
-    return Container(
-      height: 100,
-      padding: const EdgeInsets.symmetric(vertical: 12),
+    return SizedBox(
+      height: 110,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 20.0, bottom: 8.0),
+            padding: const EdgeInsets.only(left: 20.0, bottom: 6.0),
             child: Text(
               'Calendar',
               style: Theme.of(context).textTheme.titleLarge,
@@ -271,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                     borderRadius: BorderRadius.circular(16),
                     child: Container(
-                      width: 58,
+                      width: 60,
                       decoration: BoxDecoration(
                         gradient: isToday 
                           ? LinearGradient(
@@ -293,27 +291,30 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            weekdayFormatter.format(day),
-                            style: TextStyle(
-                              color: isToday ? Colors.white : const Color(0xFF8F919B),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              weekdayFormatter.format(day),
+                              style: TextStyle(
+                                color: isToday ? Colors.white : const Color(0xFF8F919B),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            day.day.toString(),
-                            style: TextStyle(
-                              color: isToday ? Colors.white : const Color(0xFF303030),
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                            const SizedBox(height: 4),
+                            Text(
+                              day.day.toString(),
+                              style: TextStyle(
+                                color: isToday ? Colors.white : const Color(0xFF303030),
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -556,7 +557,7 @@ class _HomeScreenState extends State<HomeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 8.0, bottom: 16.0),
+          padding: const EdgeInsets.only(left: 20.0, bottom: 16.0),
           child: Text(
             'Quick Actions',
             style: Theme.of(context).textTheme.titleLarge,
@@ -574,23 +575,17 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildQuickActionCard('Feeding', Icons.restaurant_outlined, () {
                 setState(() => _currentIndex = 2);
               }),
-              _buildQuickActionCard('Activity', Icons.directions_walk_outlined, () {
+              _buildQuickActionCard('Playdates', Icons.people_outline, () {
                 setState(() => _currentIndex = 3);
               }),
-              _buildQuickActionCard('Playdates', Icons.people_outline, () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const PlaydateScreen()),
-                );
+              _buildQuickActionCard('Activity', Icons.directions_walk_outlined, () {
+                setState(() => _currentIndex = 4);
               }),
               _buildQuickActionCard('Reminders', Icons.notifications_outlined, () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const ReminderScreen()),
                 );
-              }),
-              _buildQuickActionCard('Settings', Icons.settings_outlined, () {
-                setState(() => _currentIndex = 4);
               }),
             ],
           ),
@@ -611,10 +606,12 @@ class _HomeScreenState extends State<HomeScreen> {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(20),
-          child: Padding(
+          child: Container(
+            height: 100,
             padding: const EdgeInsets.all(12.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
@@ -980,8 +977,8 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Row(
           children: [
             Container(
-              width: 50,
-              height: 50,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 color: color.withOpacity(0.1),
                 shape: BoxShape.circle,
@@ -990,35 +987,40 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Icon(
                   activity['icon'] as IconData,
                   color: color,
-                  size: 24,
+                  size: 20,
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: Theme.of(context).textTheme.titleSmall,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Row(
                     children: [
                       Icon(
                         Icons.access_time,
-                        size: 14,
+                        size: 12,
                         color: const Color(0xFF8F919B),
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        formattedDate,
-                        style: TextStyle(
-                          color: const Color(0xFF8F919B),
-                          fontSize: 14,
+                      Expanded(
+                        child: Text(
+                          formattedDate,
+                          style: TextStyle(
+                            color: const Color(0xFF8F919B),
+                            fontSize: 12,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -1027,7 +1029,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
@@ -1036,7 +1038,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Text(
                 type,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 10,
                   fontWeight: FontWeight.w600,
                   color: color,
                 ),
