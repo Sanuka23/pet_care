@@ -46,7 +46,7 @@ class PetCareApp extends StatelessWidget {
         useMaterial3: true,
         colorScheme: ColorScheme.light(
           primary: Colors.black,
-          secondary: Colors.grey[800]!,
+          secondary: Colors.grey[900]!,
           surface: Colors.white,
           background: Colors.grey[50]!,
           onPrimary: Colors.white,
@@ -57,16 +57,23 @@ class PetCareApp extends StatelessWidget {
           onError: Colors.white,
         ),
         cardTheme: CardTheme(
-          elevation: 2,
+          elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.grey[200]!),
           ),
+          color: Colors.white,
         ),
         appBarTheme: AppBarTheme(
           backgroundColor: Colors.black,
           foregroundColor: Colors.white,
           elevation: 0,
           centerTitle: true,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(
+              bottom: Radius.circular(20),
+            ),
+          ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
@@ -74,8 +81,9 @@ class PetCareApp extends StatelessWidget {
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
             ),
+            elevation: 0,
           ),
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
@@ -84,7 +92,7 @@ class PetCareApp extends StatelessWidget {
             side: const BorderSide(color: Colors.black),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
         ),
@@ -94,11 +102,11 @@ class PetCareApp extends StatelessWidget {
           ),
         ),
         chipTheme: ChipThemeData(
-          backgroundColor: Colors.grey[200]!,
+          backgroundColor: Colors.grey[100]!,
           selectedColor: Colors.black,
           labelStyle: const TextStyle(color: Colors.black),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             side: BorderSide(color: Colors.grey[300]!),
           ),
         ),
@@ -106,19 +114,27 @@ class PetCareApp extends StatelessWidget {
           filled: true,
           fillColor: Colors.grey[50],
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: Colors.grey[300]!),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: Colors.grey[300]!),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Colors.black),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
+        bottomNavigationBarTheme: BottomNavigationBarThemeData(
+          backgroundColor: Colors.white,
+          selectedItemColor: Colors.black,
+          unselectedItemColor: Colors.grey[600],
+          type: BottomNavigationBarType.fixed,
+          elevation: 8,
+        ),
+        scaffoldBackgroundColor: Colors.grey[50],
       ),
       home: const HomeScreen(),
       debugShowCheckedModeBanner: false,
