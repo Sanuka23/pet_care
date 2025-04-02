@@ -5,6 +5,7 @@ import '../services/feeding_provider.dart';
 import '../services/pet_provider.dart';
 import '../models/feeding_model.dart';
 import '../screens/feeding_form_screen.dart';
+import '../screens/feeding_log_screen.dart';
 
 class FeedingScreen extends StatefulWidget {
   const FeedingScreen({super.key});
@@ -191,7 +192,6 @@ class _FeedingScreenState extends State<FeedingScreen> with SingleTickerProvider
               title: const Text('Add Feeding Schedule'),
               onTap: () {
                 Navigator.pop(context);
-                // Navigate to add schedule screen
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -205,9 +205,11 @@ class _FeedingScreenState extends State<FeedingScreen> with SingleTickerProvider
               title: const Text('Log Feeding'),
               onTap: () {
                 Navigator.pop(context);
-                // We'll implement this later
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Log Feeding functionality coming soon')),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => FeedingLogScreen(petId: petId),
+                  ),
                 );
               },
             ),
