@@ -1,0 +1,72 @@
+name: Build APK on Demand
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type (debug/release)'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+      create_release:
+        description: 'Create GitHub release'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.7.x'
+          channel: 'stable'
+          cache: true
+      
+      - name: Install dependencies
+        run: flutter pub get
+        
+      - name: Set build command
+        id: build_command
+        run: |
+          if [[ "${{ github.event.inputs.build_type }}" == "release" ]]; then
+            echo "command=flutter build apk --release" >> $GITHUB_OUTPUT
+            echo "artifact_path=build/app/outputs/flutter-apk/app-release.apk" >> $GITHUB_OUTPUT
+            echo "artifact_name=release-apk" >> $GITHUB_OUTPUT
+          else
+            echo "command=flutter build apk --debug" >> $GITHUB_OUTPUT
+            echo "artifact_path=build/app/outputs/flutter-apk/app-debug.apk" >> $GITHUB_OUTPUT
+            echo "artifact_name=debug-apk" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Build APK
+        run: ${{ steps.build_command.outputs.command }}
+        
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.build_command.outputs.artifact_name }}
+          path: ${{ steps.build_command.outputs.artifact_path }}
+          retention-days: 14
+          
+      - name: Create GitHub Release
+        if: ${{ github.event.inputs.create_release == 'true' && github.event.inputs.build_type == 'release' }}
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: ${{ steps.build_command.outputs.artifact_path }}
+          tag: v1.0.${{ github.run_number }}-manual
+          name: Release v1.0.${{ github.run_number }} (Manual)
+          body: |
+            Manual release created from branch: ${{ github.ref_name }}
+            
+            Build type: ${{ github.event.inputs.build_type }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: true 

@@ -1,11 +1,23 @@
-name: Flutter CD
+name: Flutter APK Distribution
 
 on:
   release:
-    types: [created]
+    types: [created, published]
+  workflow_dispatch:
+    inputs:
+      destination:
+        description: 'Destination for the APK'
+        required: true
+        default: 'github-release'
+        type: choice
+        options:
+          - github-release
+          - store-internal
+          - store-alpha
+          - store-beta
 
 jobs:
-  deploy-android:
+  build-and-distribute:
     runs-on: ubuntu-latest
     
     steps:
@@ -27,31 +39,54 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
       
-      - name: Build App Bundle
-        run: flutter build appbundle --release
+      - name: Build APK
+        run: flutter build apk --release
       
-      - name: Sign App Bundle
+      - name: Sign APK
         uses: r0adkll/sign-android-release@v1
         id: sign_app
         with:
-          releaseDirectory: build/app/outputs/bundle/release
+          releaseDirectory: build/app/outputs/flutter-apk
           signingKeyBase64: ${{ secrets.SIGNING_KEY }}
           alias: ${{ secrets.KEY_ALIAS }}
           keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD }}
+          signingOptionsArgs: --out build/app/outputs/flutter-apk/app-release-signed.apk
+      
+      - name: Upload APK as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: signed-release-apk
+          path: build/app/outputs/flutter-apk/app-release-signed.apk
+          retention-days: 30
         
-      - name: Upload App Bundle to Release
+      - name: Create or Update GitHub Release
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.destination == 'github-release' || github.event_name == 'release' }}
         uses: softprops/action-gh-release@v1
         with:
-          files: ${{steps.sign_app.outputs.signedReleaseFile}}
+          files: build/app/outputs/flutter-apk/app-release-signed.apk
+          tag_name: ${{ github.event_name == 'release' && github.ref_name || format('v1.0.{0}-manual', github.run_number) }}
+          name: ${{ github.event_name == 'release' && github.event.release.name || format('Manual Release v1.0.{0}', github.run_number) }}
+          body: ${{ github.event_name == 'release' && github.event.release.body || 'APK built and signed by GitHub Actions' }}
+          draft: ${{ github.event_name != 'release' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
+      - name: Set Google Play Track
+        id: play_track
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.destination != 'github-release' }}
+        run: |
+          TRACK="${{ github.event.inputs.destination }}"
+          # Convert store-xxx to just xxx
+          TRACK="${TRACK#store-}"
+          echo "track=$TRACK" >> $GITHUB_OUTPUT
+      
       - name: Upload to Google Play
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.destination != 'github-release' }}
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
           packageName: com.example.pet_care
-          releaseFiles: ${{steps.sign_app.outputs.signedReleaseFile}}
-          track: internal
+          releaseFiles: build/app/outputs/flutter-apk/app-release-signed.apk
+          track: ${{ steps.play_track.outputs.track }}
           status: completed 
