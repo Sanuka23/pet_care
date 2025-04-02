@@ -19,6 +19,7 @@ import '../models/appointment_model.dart';
 import '../models/feeding_model.dart';
 import '../models/activity_model.dart';
 import 'reminder_screen.dart';
+import 'dart:io';
 
 // String extension for capitalize
 extension StringExtension on String {
@@ -42,18 +43,16 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     // Load data when the app starts
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Load pets
-      Provider.of<PetProvider>(context, listen: false).loadPets();
       // Load vaccinations
       Provider.of<VaccinationProvider>(context, listen: false).loadVaccinations();
       // Load appointments
       Provider.of<AppointmentProvider>(context, listen: false).loadAppointments();
-      // Load feeding data
+      // Load feedings
       Provider.of<FeedingProvider>(context, listen: false).loadData();
-      // Load playdates
-      Provider.of<PlaydateProvider>(context, listen: false).loadPlaydates();
       // Load activities
       Provider.of<ActivityProvider>(context, listen: false).loadActivities();
+      // Load playdates
+      Provider.of<PlaydateProvider>(context, listen: false).loadPlaydates();
     });
   }
 
@@ -145,7 +144,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ...pets.map((pet) => ListTile(
               leading: CircleAvatar(
                 backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
-                child: Icon(Icons.pets, color: Theme.of(context).primaryColor),
+                backgroundImage: pet.imageUrl != null
+                    ? FileImage(File(pet.imageUrl!))
+                    : null,
+                child: pet.imageUrl == null
+                    ? Icon(Icons.pets, color: Theme.of(context).primaryColor)
+                    : null,
               ),
               title: Text(pet.name),
               subtitle: Text('${pet.breed}, ${pet.age} years'),
@@ -239,11 +243,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 CircleAvatar(
                   radius: 40,
                   backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
-                  child: Icon(
-                    Icons.pets,
-                    size: 40,
-                    color: Theme.of(context).primaryColor,
-                  ),
+                  backgroundImage: pet.imageUrl != null ? FileImage(File(pet.imageUrl!)) : null,
+                  child: pet.imageUrl == null
+                      ? Icon(
+                          Icons.pets,
+                          size: 40,
+                          color: Theme.of(context).primaryColor,
+                        )
+                      : null,
                 ),
                 const SizedBox(width: 10),
                 Text(

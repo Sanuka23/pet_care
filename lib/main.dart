@@ -16,15 +16,19 @@ void main() async {
   final notificationService = NotificationService();
   await notificationService.initialize();
   
+  // Initialize pet provider
+  final petProvider = PetProvider();
+  await petProvider.initialize();
+  
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (context) => PetProvider()),
-        ChangeNotifierProvider(create: (context) => VaccinationProvider()),
-        ChangeNotifierProvider(create: (context) => AppointmentProvider()),
-        ChangeNotifierProvider(create: (context) => FeedingProvider()),
-        ChangeNotifierProvider(create: (context) => ActivityProvider()),
-        ChangeNotifierProvider(create: (context) => PlaydateProvider()),
+        ChangeNotifierProvider(create: (_) => petProvider),
+        ChangeNotifierProvider(create: (_) => VaccinationProvider()),
+        ChangeNotifierProvider(create: (_) => AppointmentProvider()),
+        ChangeNotifierProvider(create: (_) => FeedingProvider()),
+        ChangeNotifierProvider(create: (_) => ActivityProvider()),
+        ChangeNotifierProvider(create: (_) => PlaydateProvider()),
       ],
       child: const PetCareApp(),
     ),

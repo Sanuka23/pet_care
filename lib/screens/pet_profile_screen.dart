@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../models/pet_model.dart';
 import '../services/pet_provider.dart';
 
@@ -19,6 +21,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
   final _ageController = TextEditingController();
   final _weightController = TextEditingController();
   final _specialNeedsController = TextEditingController();
+  String? _imagePath;
 
   @override
   void initState() {
@@ -30,6 +33,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
       _ageController.text = widget.pet!.age.toString();
       _weightController.text = widget.pet!.weight.toString();
       _specialNeedsController.text = widget.pet!.specialNeeds?.join(', ') ?? '';
+      _imagePath = widget.pet!.imageUrl;
     }
   }
 
@@ -43,6 +47,17 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
     super.dispose();
   }
 
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    
+    if (image != null) {
+      setState(() {
+        _imagePath = image.path;
+      });
+    }
+  }
+
   void _savePet() {
     if (_formKey.currentState!.validate()) {
       // Create a new pet with the form data
@@ -52,14 +67,15 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
         breed: _breedController.text,
         age: int.parse(_ageController.text),
         weight: double.parse(_weightController.text),
+        imageUrl: _imagePath,
         specialNeeds: _specialNeedsController.text.isNotEmpty
-            ? _specialNeedsController.text.split(',').map((s) => s.trim()).toList()
+            ? _specialNeedsController.text.split(',').map((e) => e.trim()).toList()
             : null,
       );
 
-      // Add the pet to the provider
-      Provider.of<PetProvider>(context, listen: false).setPet(pet);
-
+      // Save the pet using the provider
+      context.read<PetProvider>().setPet(pet);
+      
       // Navigate back
       Navigator.pop(context);
     }
@@ -69,7 +85,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.pet == null ? 'Add Pet' : 'Edit Pet'),
+        title: Text(widget.pet == null ? 'Add New Pet' : 'Edit Pet'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -78,17 +94,32 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Pet Avatar Placeholder
+              // Pet Image
               Center(
-                child: CircleAvatar(
-                  radius: 60,
-                  backgroundColor: Colors.grey.shade200,
-                  child: const Icon(Icons.pets, size: 60, color: Colors.grey),
+                child: GestureDetector(
+                  onTap: _pickImage,
+                  child: Container(
+                    width: 150,
+                    height: 150,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      shape: BoxShape.circle,
+                      image: _imagePath != null
+                          ? DecorationImage(
+                              image: FileImage(File(_imagePath!)),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: _imagePath == null
+                        ? const Icon(Icons.add_a_photo, size: 50, color: Colors.grey)
+                        : null,
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               
-              // Name
+              // Name Field
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -97,14 +128,14 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter pet name';
+                    return 'Please enter a name';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
               
-              // Breed
+              // Breed Field
               TextFormField(
                 controller: _breedController,
                 decoration: const InputDecoration(
@@ -113,14 +144,14 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter breed';
+                    return 'Please enter a breed';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
               
-              // Age
+              // Age Field
               TextFormField(
                 controller: _ageController,
                 decoration: const InputDecoration(
@@ -130,17 +161,17 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
                 keyboardType: TextInputType.number,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter age';
+                    return 'Please enter an age';
                   }
                   if (int.tryParse(value) == null) {
-                    return 'Please enter a valid age';
+                    return 'Please enter a valid number';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
               
-              // Weight
+              // Weight Field
               TextFormField(
                 controller: _weightController,
                 decoration: const InputDecoration(
@@ -150,21 +181,21 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
                 keyboardType: TextInputType.number,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter weight';
+                    return 'Please enter a weight';
                   }
                   if (double.tryParse(value) == null) {
-                    return 'Please enter a valid weight';
+                    return 'Please enter a valid number';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
               
-              // Special Needs
+              // Special Needs Field
               TextFormField(
                 controller: _specialNeedsController,
                 decoration: const InputDecoration(
-                  labelText: 'Special Needs (comma separated)',
+                  labelText: 'Special Needs (comma-separated)',
                   border: OutlineInputBorder(),
                 ),
                 maxLines: 3,
@@ -175,12 +206,9 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
               ElevatedButton(
                 onPressed: _savePet,
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: Text(
-                  widget.pet == null ? 'Add Pet' : 'Save Changes',
-                  style: const TextStyle(fontSize: 16),
-                ),
+                child: Text(widget.pet == null ? 'Add Pet' : 'Save Changes'),
               ),
             ],
           ),

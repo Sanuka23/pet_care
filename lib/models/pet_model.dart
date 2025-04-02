@@ -16,4 +16,32 @@ class Pet {
     this.imageUrl,
     this.specialNeeds,
   });
+
+  // Convert Pet to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'breed': breed,
+      'age': age,
+      'weight': weight,
+      'imageUrl': imageUrl,
+      'specialNeeds': specialNeeds,
+    };
+  }
+
+  // Create Pet from JSON
+  factory Pet.fromJson(Map<String, dynamic> json) {
+    return Pet(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      breed: json['breed'] as String,
+      age: json['age'] as int,
+      weight: json['weight'] as double,
+      imageUrl: json['imageUrl'] as String?,
+      specialNeeds: json['specialNeeds'] != null
+          ? List<String>.from(json['specialNeeds'] as List)
+          : null,
+    );
+  }
 } 

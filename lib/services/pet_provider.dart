@@ -1,16 +1,60 @@
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 import '../models/pet_model.dart';
 
 class PetProvider with ChangeNotifier {
   List<Pet> _pets = [];
   Pet? _currentPet;
+  static const String _petsFileName = 'pets.json';
 
   List<Pet> get pets => _pets;
   Pet? get currentPet => _currentPet;
 
+  // Initialize the provider
+  Future<void> initialize() async {
+    await _loadPets();
+  }
+
+  // Load pets from storage
+  Future<void> _loadPets() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/$_petsFileName');
+      
+      if (await file.exists()) {
+        final contents = await file.readAsString();
+        final List<dynamic> jsonList = json.decode(contents);
+        _pets = jsonList.map((json) => Pet.fromJson(json)).toList();
+        
+        // Set current pet to the first pet if available
+        if (_pets.isNotEmpty && _currentPet == null) {
+          _currentPet = _pets[0];
+        }
+        
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error loading pets: $e');
+    }
+  }
+
+  // Save pets to storage
+  Future<void> _savePets() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/$_petsFileName');
+      
+      final jsonList = _pets.map((pet) => pet.toJson()).toList();
+      await file.writeAsString(json.encode(jsonList));
+    } catch (e) {
+      debugPrint('Error saving pets: $e');
+    }
+  }
+
   // Add a new pet or update existing pet
-  void setPet(Pet pet) {
+  Future<void> setPet(Pet pet) async {
     final index = _pets.indexWhere((p) => p.id == pet.id);
     
     if (index >= 0) {
@@ -24,14 +68,14 @@ class PetProvider with ChangeNotifier {
     // Set as current pet
     _currentPet = pet;
     
-    // For testing, we'll skip saving to storage
-    // _savePets();
+    // Save to storage
+    await _savePets();
     
     notifyListeners();
   }
 
   // Remove a pet
-  void removePet(String petId) {
+  Future<void> removePet(String petId) async {
     _pets.removeWhere((p) => p.id == petId);
     
     // If current pet was removed, set current to first pet or null
@@ -39,8 +83,8 @@ class PetProvider with ChangeNotifier {
       _currentPet = _pets.isNotEmpty ? _pets[0] : null;
     }
     
-    // For testing, we'll skip saving to storage
-    // _savePets();
+    // Save to storage
+    await _savePets();
     
     notifyListeners();
   }
@@ -49,42 +93,6 @@ class PetProvider with ChangeNotifier {
   void setCurrentPet(Pet pet) {
     _currentPet = pet;
     notifyListeners();
-  }
-
-  // Load pets from local storage
-  Future<void> loadPets() async {
-    // For testing, we'll add some mock data instead of loading from storage
-    if (_pets.isEmpty) {
-      _pets = [
-        Pet(
-          id: '1',
-          name: 'Buddy',
-          breed: 'Golden Retriever',
-          age: 3,
-          weight: 25.5,
-        ),
-        Pet(
-          id: '2',
-          name: 'Max',
-          breed: 'German Shepherd',
-          age: 2,
-          weight: 30.0,
-        ),
-      ];
-      
-      // Set first pet as current
-      if (_pets.isNotEmpty && _currentPet == null) {
-        _currentPet = _pets[0];
-      }
-      
-      notifyListeners();
-    }
-  }
-
-  // Save pets to local storage - not used for testing
-  Future<void> _savePets() async {
-    // For testing, we'll skip saving to storage
-    debugPrint('Saving pets (skipped for testing)');
   }
 
   // Convert Pet to JSON
