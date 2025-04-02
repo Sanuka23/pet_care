@@ -7,8 +7,15 @@ import 'services/appointment_provider.dart';
 import 'services/feeding_provider.dart';
 import 'services/activity_provider.dart';
 import 'services/playdate_provider.dart';
+import 'services/notification_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize notification service
+  final notificationService = NotificationService();
+  await notificationService.initialize();
+  
   runApp(
     MultiProvider(
       providers: [

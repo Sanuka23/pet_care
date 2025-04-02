@@ -18,6 +18,7 @@ import '../models/vaccination_model.dart';
 import '../models/appointment_model.dart';
 import '../models/feeding_model.dart';
 import '../models/activity_model.dart';
+import 'reminder_screen.dart';
 
 // String extension for capitalize
 extension StringExtension on String {
@@ -65,6 +66,18 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.pets),
             onPressed: _showPetSelector,
+          ),
+          IconButton(
+            icon: const Icon(Icons.notifications),
+            tooltip: 'Reminders',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ReminderScreen(),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -359,7 +372,10 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             }),
             _buildQuickActionCard('Reminders', Icons.notifications, () {
-              // Will be implemented later
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ReminderScreen()),
+              );
             }),
           ],
         ),

@@ -1,0 +1,2 @@
+/Users/sanukathamuditha/Desktop/Ruwantha/pet care 2/pet_care/android/app/.cxx/RelWithDebInfo/61q5h2w3/x86/CMakeFiles/edit_cache.dir
+/Users/sanukathamuditha/Desktop/Ruwantha/pet care 2/pet_care/android/app/.cxx/RelWithDebInfo/61q5h2w3/x86/CMakeFiles/rebuild_cache.dir
