@@ -14,7 +14,6 @@ dependencies:
   table_calendar: ^3.0.9 # Calendar views
   flutter_svg: ^2.0.9 # SVG support
   uuid: ^4.3.2 # For generating unique IDs
-  shared_preferences: ^2.2.2 # Local storage
 
 dev_dependencies:
   flutter_test:

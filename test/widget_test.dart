@@ -51,7 +51,17 @@ class MockAppointmentProvider extends AppointmentProvider {
 }
 
 class MockFeedingProvider extends FeedingProvider {
-  MockFeedingProvider() : super(isTest: true);
+  @override
+  Future<void> loadData() async {
+    // Do nothing in tests
+    return;
+  }
+  
+  @override
+  Future<void> _saveData() async {
+    // Do nothing in tests
+    return;
+  }
 }
 
 void main() {

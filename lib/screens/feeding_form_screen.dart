@@ -7,12 +7,12 @@ import '../services/pet_provider.dart';
 
 class FeedingFormScreen extends StatefulWidget {
   final String petId;
-  final Feeding? feeding; // If null, we're adding a new feeding schedule
+  final FeedingSchedule? schedule; // If null, we're adding a new schedule
 
   const FeedingFormScreen({
     super.key,
     required this.petId,
-    this.feeding,
+    this.schedule,
   });
 
   @override
@@ -21,101 +21,132 @@ class FeedingFormScreen extends StatefulWidget {
 
 class _FeedingFormScreenState extends State<FeedingFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _foodNameController = TextEditingController();
-  final _portionSizeController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _foodTypeController = TextEditingController();
+  final _amountController = TextEditingController();
+  final _notesController = TextEditingController();
   
-  FeedingFrequency _frequency = FeedingFrequency.daily;
+  String _unit = 'cups';
   final List<TimeOfDay> _feedingTimes = [];
   
   bool _isEditing = false;
   final _uuid = const Uuid();
 
+  final List<String> _unitOptions = ['cups', 'grams', 'ounces', 'cans', 'servings'];
+
   @override
   void initState() {
     super.initState();
-    _isEditing = widget.feeding != null;
+    _isEditing = widget.schedule != null;
     
     if (_isEditing) {
-      // Populate form with existing feeding data
-      _foodNameController.text = widget.feeding!.foodName;
-      _portionSizeController.text = widget.feeding!.portionSize;
-      _frequency = widget.feeding!.frequency;
-      _feedingTimes.addAll(widget.feeding!.feedingTimes);
+      // Populate form with existing schedule data
+      _nameController.text = widget.schedule!.name;
+      _foodTypeController.text = widget.schedule!.foodType;
+      _amountController.text = widget.schedule!.amount.toString();
+      _unit = widget.schedule!.unit;
+      _notesController.text = widget.schedule!.notes ?? '';
+      
+      // Convert FeedingTime to Flutter's TimeOfDay
+      _feedingTimes.addAll(widget.schedule!.times.map((feedTime) => 
+        TimeOfDay(hour: feedTime.hour, minute: feedTime.minute)
+      ));
     } else {
-      // For new schedules, add a default feeding time (morning)
+      // Default for new schedule - add one time slot
       _feedingTimes.add(const TimeOfDay(hour: 8, minute: 0));
     }
   }
 
   @override
   void dispose() {
-    _foodNameController.dispose();
-    _portionSizeController.dispose();
+    _nameController.dispose();
+    _foodTypeController.dispose();
+    _amountController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
-  // Save feeding schedule data
-  void _saveFeeding() {
-    if (_formKey.currentState!.validate()) {
-      final feedingProvider = Provider.of<FeedingProvider>(context, listen: false);
-      
-      if (_isEditing) {
-        // Update existing feeding schedule
-        final updatedFeeding = widget.feeding!.copyWith(
-          foodName: _foodNameController.text,
-          portionSize: _portionSizeController.text,
-          frequency: _frequency,
-          feedingTimes: _feedingTimes,
-        );
-        
-        feedingProvider.updateFeeding(updatedFeeding);
-      } else {
-        // Create new feeding schedule
-        final newFeeding = Feeding(
-          id: _uuid.v4(),
-          petId: widget.petId,
-          foodName: _foodNameController.text,
-          portionSize: _portionSizeController.text,
-          frequency: _frequency,
-          feedingTimes: _feedingTimes,
-        );
-        
-        feedingProvider.addFeeding(newFeeding);
-      }
-      
-      Navigator.pop(context);
-    }
+  // Add a new feeding time
+  void _addFeedingTime() {
+    setState(() {
+      _feedingTimes.add(const TimeOfDay(hour: 12, minute: 0));
+    });
   }
 
-  // Show time picker for adding/editing a feeding time
-  Future<void> _selectTime(BuildContext context, [int? index]) async {
-    final TimeOfDay initialTime = index != null 
-        ? _feedingTimes[index]
-        : TimeOfDay.now();
-        
+  // Remove a feeding time
+  void _removeFeedingTime(int index) {
+    setState(() {
+      _feedingTimes.removeAt(index);
+    });
+  }
+
+  // Show time picker
+  Future<void> _selectTime(BuildContext context, int index) async {
     final TimeOfDay? pickedTime = await showTimePicker(
       context: context,
-      initialTime: initialTime,
+      initialTime: _feedingTimes[index],
     );
     
     if (pickedTime != null) {
       setState(() {
-        if (index != null) {
-          _feedingTimes[index] = pickedTime;
-        } else {
-          _feedingTimes.add(pickedTime);
-        }
-        // Sort feeding times by hour
-        _feedingTimes.sort((a, b) => a.hour.compareTo(b.hour));
+        _feedingTimes[index] = pickedTime;
       });
     }
   }
 
-  // Remove a feeding time
-  void _removeTime(int index) {
-    setState(() {
-      _feedingTimes.removeAt(index);
-    });
+  // Save feeding schedule
+  void _saveSchedule() {
+    if (_formKey.currentState!.validate() && _feedingTimes.isNotEmpty) {
+      final feedingProvider = Provider.of<FeedingProvider>(context, listen: false);
+      
+      // Validate amount
+      final amount = double.tryParse(_amountController.text);
+      if (amount == null || amount <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a valid amount')),
+        );
+        return;
+      }
+      
+      // Convert TimeOfDay to FeedingTime
+      final feedingTimes = _feedingTimes.map((time) => 
+        FeedingTime(hour: time.hour, minute: time.minute)
+      ).toList();
+      
+      if (_isEditing) {
+        // Update existing schedule
+        final updatedSchedule = widget.schedule!.copyWith(
+          name: _nameController.text,
+          foodType: _foodTypeController.text,
+          amount: amount,
+          unit: _unit,
+          times: feedingTimes,
+          notes: _notesController.text.isEmpty ? null : _notesController.text,
+        );
+        
+        feedingProvider.updateSchedule(updatedSchedule);
+      } else {
+        // Create new schedule
+        final newSchedule = FeedingSchedule(
+          id: _uuid.v4(),
+          petId: widget.petId,
+          name: _nameController.text,
+          foodType: _foodTypeController.text,
+          amount: amount,
+          unit: _unit,
+          times: feedingTimes,
+          notes: _notesController.text.isEmpty ? null : _notesController.text,
+        );
+        
+        feedingProvider.addSchedule(newSchedule);
+      }
+      
+      Navigator.pop(context);
+    } else if (_feedingTimes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please add at least one feeding time')),
+      );
+    }
   }
 
   @override
@@ -155,150 +186,135 @@ class _FeedingFormScreenState extends State<FeedingFormScreen> {
               ),
               const SizedBox(height: 16),
               
-              // Food name
+              // Schedule name
               TextFormField(
-                controller: _foodNameController,
+                controller: _nameController,
                 decoration: const InputDecoration(
-                  labelText: 'Food Name',
-                  hintText: 'e.g., Premium Dry Food, Wet Food, etc.',
+                  labelText: 'Schedule Name',
+                  hintText: 'e.g., Morning Feed, Dinner, etc.',
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter a food name';
+                    return 'Please enter a name';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
               
-              // Portion size
+              // Food type
               TextFormField(
-                controller: _portionSizeController,
+                controller: _foodTypeController,
                 decoration: const InputDecoration(
-                  labelText: 'Portion Size',
-                  hintText: 'e.g., 1 cup, 100g, etc.',
+                  labelText: 'Food Type',
+                  hintText: 'e.g., Dry Kibble, Wet Food, etc.',
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter a portion size';
+                    return 'Please enter food type';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
               
-              // Frequency
-              const Text(
-                'Frequency',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              RadioListTile<FeedingFrequency>(
-                title: const Text('Daily'),
-                value: FeedingFrequency.daily,
-                groupValue: _frequency,
-                onChanged: (FeedingFrequency? value) {
-                  if (value != null) {
-                    setState(() {
-                      _frequency = value;
-                    });
-                  }
-                },
-              ),
-              RadioListTile<FeedingFrequency>(
-                title: const Text('Custom'),
-                value: FeedingFrequency.custom,
-                groupValue: _frequency,
-                onChanged: (FeedingFrequency? value) {
-                  if (value != null) {
-                    setState(() {
-                      _frequency = value;
-                    });
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              
-              // Feeding times
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Feeding Times',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: () => _selectTime(context),
-                            icon: const Icon(Icons.add),
-                            label: const Text('Add Time'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
-                        ],
+              // Amount and unit
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Amount
+                  Expanded(
+                    flex: 2,
+                    child: TextFormField(
+                      controller: _amountController,
+                      decoration: const InputDecoration(
+                        labelText: 'Amount',
+                        border: OutlineInputBorder(),
                       ),
-                      const SizedBox(height: 8),
-                      _feedingTimes.isEmpty
-                          ? const Text('No feeding times set')
-                          : Column(
-                              children: List.generate(
-                                _feedingTimes.length,
-                                (index) => ListTile(
-                                  leading: const Icon(Icons.access_time),
-                                  title: Text(_feedingTimes[index].format(context)),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.edit),
-                                        onPressed: () => _selectTime(context, index),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete),
-                                        onPressed: () => _removeTime(index),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                    ],
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Required';
+                        }
+                        final amount = double.tryParse(value);
+                        if (amount == null || amount <= 0) {
+                          return 'Invalid amount';
+                        }
+                        return null;
+                      },
+                    ),
                   ),
+                  const SizedBox(width: 8),
+                  // Unit
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(
+                        labelText: 'Unit',
+                        border: OutlineInputBorder(),
+                      ),
+                      value: _unit,
+                      items: _unitOptions.map((unit) {
+                        return DropdownMenuItem<String>(
+                          value: unit,
+                          child: Text(unit),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() {
+                            _unit = value;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              
+              // Feeding times section
+              const Text(
+                'Feeding Times',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              
+              // Times list
+              ..._buildFeedingTimesList(),
+              
+              // Add time button
+              Center(
+                child: OutlinedButton.icon(
+                  onPressed: _addFeedingTime,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add Feeding Time'),
                 ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Notes
+              TextFormField(
+                controller: _notesController,
+                decoration: const InputDecoration(
+                  labelText: 'Notes (Optional)',
+                  hintText: 'Any additional information',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
               ),
               const SizedBox(height: 24),
-              
-              // Validate there's at least one feeding time
-              if (_feedingTimes.isEmpty) ...[
-                const Text(
-                  'Please add at least one feeding time',
-                  style: TextStyle(color: Colors.red),
-                ),
-                const SizedBox(height: 16),
-              ],
               
               // Save button
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: _feedingTimes.isEmpty ? null : _saveFeeding,
+                  onPressed: _saveSchedule,
                   child: Text(
-                    _isEditing ? 'Update Feeding Schedule' : 'Add Feeding Schedule',
+                    _isEditing ? 'Update Schedule' : 'Add Schedule',
                     style: const TextStyle(fontSize: 16),
                   ),
                 ),
@@ -308,5 +324,39 @@ class _FeedingFormScreenState extends State<FeedingFormScreen> {
         ),
       ),
     );
+  }
+
+  List<Widget> _buildFeedingTimesList() {
+    return _feedingTimes.asMap().entries.map((entry) {
+      final index = entry.key;
+      final time = entry.value;
+      
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.access_time),
+                  onPressed: () => _selectTime(context, index),
+                ),
+                Expanded(
+                  child: Text(
+                    time.format(context),
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () => _removeFeedingTime(index),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }).toList();
   }
 } 

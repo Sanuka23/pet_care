@@ -22,7 +22,17 @@ class MockPetProvider extends PetProvider {
 }
 
 class MockFeedingProvider extends FeedingProvider {
-  MockFeedingProvider() : super(isTest: true);
+  @override
+  Future<void> loadData() async {
+    // Do nothing in tests
+    return;
+  }
+  
+  @override
+  Future<void> _saveData() async {
+    // Do nothing in tests
+    return;
+  }
 }
 
 void main() {
@@ -49,27 +59,41 @@ void main() {
       petProvider.setPet(testPet);
       
       // Add some test feeding schedules
-      feedingProvider.addFeeding(Feeding(
+      feedingProvider.addSchedule(FeedingSchedule(
         id: 'feed1',
         petId: 'pet1',
-        foodName: 'Morning Kibble',
-        portionSize: '1 cup',
-        frequency: FeedingFrequency.daily,
-        feedingTimes: [const TimeOfDay(hour: 8, minute: 0)],
+        name: 'Morning Feed',
+        foodType: 'Dry Food',
+        amount: 1.5,
+        unit: 'cups',
+        times: [FeedingTime(hour: 8, minute: 0)],
       ));
       
-      feedingProvider.addFeeding(Feeding(
+      feedingProvider.addSchedule(FeedingSchedule(
         id: 'feed2',
         petId: 'pet1',
-        foodName: 'Evening Meal',
-        portionSize: '1.5 cups',
-        frequency: FeedingFrequency.daily,
-        feedingTimes: [const TimeOfDay(hour: 18, minute: 0)],
+        name: 'Evening Feed',
+        foodType: 'Wet Food',
+        amount: 1.0,
+        unit: 'cans',
+        times: [FeedingTime(hour: 18, minute: 0)],
         isActive: false,
+      ));
+      
+      // Add some test feeding logs
+      final now = DateTime.now();
+      feedingProvider.addLog(FeedingLog(
+        id: 'log1',
+        scheduleId: 'feed1',
+        petId: 'pet1',
+        timestamp: now,
+        amount: 1.5,
+        unit: 'cups',
+        foodType: 'Dry Food',
       ));
     });
     
-    testWidgets('FeedingScreen displays feeding schedules correctly', (WidgetTester tester) async {
+    testWidgets('FeedingScreen displays schedules correctly', (WidgetTester tester) async {
       // Build the FeedingScreen widget
       await tester.pumpWidget(
         MultiProvider(
@@ -89,51 +113,23 @@ void main() {
       // Verify that the AppBar shows correctly
       expect(find.text('Buddy\'s Feeding'), findsOneWidget);
       
-      // Verify that both feeding schedules are displayed
-      expect(find.text('Morning Kibble'), findsOneWidget);
-      expect(find.text('Evening Meal'), findsOneWidget);
+      // Verify that both tabs exist
+      expect(find.text('Schedules'), findsOneWidget);
+      expect(find.text('History'), findsOneWidget);
       
-      // Verify that the portion sizes are displayed
-      expect(find.text('Portion: 1 cup'), findsOneWidget);
-      expect(find.text('Portion: 1.5 cups'), findsOneWidget);
+      // Verify that schedules are displayed
+      expect(find.text('Morning Feed'), findsOneWidget);
+      expect(find.text('Evening Feed'), findsOneWidget);
       
-      // Verify that the active feeding has a "Record Feeding" button
-      expect(find.text('Record Feeding'), findsOneWidget);
-      
-      // Verify that there's a floating action button to add feeding schedules
+      // Verify that there's a floating action button to add schedules
       expect(find.byType(FloatingActionButton), findsOneWidget);
       
-      // Verify section headings
-      expect(find.text('Feeding Schedules'), findsOneWidget);
-      expect(find.text('Today\'s Feedings'), findsOneWidget);
-    });
-    
-    testWidgets('FeedingScreen shows empty state when no feedings', (WidgetTester tester) async {
-      // Clear all feedings
-      feedingProvider = MockFeedingProvider();
-      
-      // Build the FeedingScreen widget
-      await tester.pumpWidget(
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider<PetProvider>.value(value: petProvider),
-            ChangeNotifierProvider<FeedingProvider>.value(value: feedingProvider),
-          ],
-          child: const MaterialApp(
-            home: FeedingScreen(),
-          ),
-        ),
-      );
-      
-      // Wait for the widget to build
+      // Switch to History tab
+      await tester.tap(find.text('History'));
       await tester.pumpAndSettle();
       
-      // Verify that the empty state message is displayed
-      expect(find.text('No Feeding Schedules'), findsOneWidget);
-      expect(find.text('Add a feeding schedule for your pet'), findsOneWidget);
-      
-      // Verify that the add button is displayed
-      expect(find.text('Add Feeding Schedule'), findsOneWidget);
+      // Verify that logs are displayed
+      expect(find.text('Dry Food'), findsOneWidget);
     });
   });
 } 

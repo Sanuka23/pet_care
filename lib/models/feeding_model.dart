@@ -1,66 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
 class FeedingSchedule {
   final String id;
+  final String petId;
+  final String name;
   final String foodType;
   final double amount;
-  final String unit; // e.g., cups, grams
-  final TimeOfDay time;
-  final List<String> daysOfWeek; // e.g., ["Monday", "Wednesday", "Friday"]
-  final bool isCompleted;
+  final String unit;
+  final List<FeedingTime> times;
+  final String? notes;
+  final bool isActive;
 
   FeedingSchedule({
     required this.id,
+    required this.petId,
+    required this.name,
     required this.foodType,
     required this.amount,
     required this.unit,
-    required this.time,
-    required this.daysOfWeek,
-    this.isCompleted = false,
-  });
-}
-
-class Feeding {
-  final String id;
-  final String petId;
-  final String foodName;
-  final String portionSize;
-  final FeedingFrequency frequency;
-  final List<TimeOfDay> feedingTimes;
-  final bool isActive;
-  final List<FeedingRecord> feedingHistory;
-
-  Feeding({
-    required this.id,
-    required this.petId,
-    required this.foodName,
-    required this.portionSize,
-    required this.frequency,
-    required this.feedingTimes,
+    required this.times,
+    this.notes,
     this.isActive = true,
-    List<FeedingRecord>? feedingHistory,
-  }) : feedingHistory = feedingHistory ?? [];
+  });
 
-  // Create a copy of this feeding with modified fields
-  Feeding copyWith({
+  // Create a copy with modifications
+  FeedingSchedule copyWith({
     String? id,
     String? petId,
-    String? foodName,
-    String? portionSize,
-    FeedingFrequency? frequency,
-    List<TimeOfDay>? feedingTimes,
+    String? name,
+    String? foodType,
+    double? amount,
+    String? unit,
+    List<FeedingTime>? times,
+    String? notes,
     bool? isActive,
-    List<FeedingRecord>? feedingHistory,
   }) {
-    return Feeding(
+    return FeedingSchedule(
       id: id ?? this.id,
       petId: petId ?? this.petId,
-      foodName: foodName ?? this.foodName,
-      portionSize: portionSize ?? this.portionSize,
-      frequency: frequency ?? this.frequency,
-      feedingTimes: feedingTimes ?? this.feedingTimes,
+      name: name ?? this.name,
+      foodType: foodType ?? this.foodType,
+      amount: amount ?? this.amount,
+      unit: unit ?? this.unit,
+      times: times ?? this.times,
+      notes: notes ?? this.notes,
       isActive: isActive ?? this.isActive,
-      feedingHistory: feedingHistory ?? this.feedingHistory,
     );
   }
 
@@ -69,98 +54,121 @@ class Feeding {
     return {
       'id': id,
       'petId': petId,
-      'foodName': foodName,
-      'portionSize': portionSize,
-      'frequency': frequency.toString(),
-      'feedingTimes': feedingTimes.map((time) => '${time.hour}:${time.minute}').toList(),
+      'name': name,
+      'foodType': foodType,
+      'amount': amount,
+      'unit': unit,
+      'times': times.map((time) => '${time.hour}:${time.minute}').toList(),
+      'notes': notes,
       'isActive': isActive,
-      'feedingHistory': feedingHistory.map((record) => record.toJson()).toList(),
     };
   }
 
   // Create from JSON
-  factory Feeding.fromJson(Map<String, dynamic> json) {
-    return Feeding(
+  factory FeedingSchedule.fromJson(Map<String, dynamic> json) {
+    final timesList = (json['times'] as List<dynamic>).map((timeStr) {
+      final parts = timeStr.split(':');
+      return FeedingTime(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+    }).toList();
+
+    return FeedingSchedule(
       id: json['id'],
       petId: json['petId'],
-      foodName: json['foodName'],
-      portionSize: json['portionSize'],
-      frequency: _parseFrequency(json['frequency']),
-      feedingTimes: _parseTimeOfDayList(json['feedingTimes']),
+      name: json['name'],
+      foodType: json['foodType'],
+      amount: json['amount'],
+      unit: json['unit'],
+      times: timesList,
+      notes: json['notes'],
       isActive: json['isActive'] ?? true,
-      feedingHistory: _parseFeedingHistory(json['feedingHistory']),
     );
-  }
-
-  static FeedingFrequency _parseFrequency(String frequency) {
-    return FeedingFrequency.values.firstWhere(
-      (f) => f.toString() == frequency,
-      orElse: () => FeedingFrequency.daily,
-    );
-  }
-
-  static List<TimeOfDay> _parseTimeOfDayList(List<dynamic> timeStrings) {
-    return timeStrings.map((timeStr) {
-      final parts = timeStr.split(':');
-      return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
-    }).toList();
-  }
-
-  static List<FeedingRecord> _parseFeedingHistory(List<dynamic>? history) {
-    if (history == null) return [];
-    return history.map((item) => FeedingRecord.fromJson(item)).toList();
   }
 }
 
-// Enum to represent feeding frequency options
-enum FeedingFrequency {
-  daily,
-  custom
-}
-
-// Class to represent a single feeding event
-class FeedingRecord {
+class FeedingLog {
   final String id;
+  final String scheduleId;
+  final String petId;
   final DateTime timestamp;
-  final bool completed;
+  final double amount;
+  final String unit;
+  final String foodType;
   final String? notes;
 
-  FeedingRecord({
+  FeedingLog({
     required this.id,
+    required this.scheduleId,
+    required this.petId,
     required this.timestamp,
-    this.completed = false,
+    required this.amount,
+    required this.unit,
+    required this.foodType,
     this.notes,
   });
 
-  FeedingRecord copyWith({
+  // Create a copy with modifications
+  FeedingLog copyWith({
     String? id,
+    String? scheduleId,
+    String? petId,
     DateTime? timestamp,
-    bool? completed,
+    double? amount,
+    String? unit,
+    String? foodType,
     String? notes,
   }) {
-    return FeedingRecord(
+    return FeedingLog(
       id: id ?? this.id,
+      scheduleId: scheduleId ?? this.scheduleId,
+      petId: petId ?? this.petId,
       timestamp: timestamp ?? this.timestamp,
-      completed: completed ?? this.completed,
+      amount: amount ?? this.amount,
+      unit: unit ?? this.unit,
+      foodType: foodType ?? this.foodType,
       notes: notes ?? this.notes,
     );
   }
 
+  // Convert to JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'scheduleId': scheduleId,
+      'petId': petId,
       'timestamp': timestamp.millisecondsSinceEpoch,
-      'completed': completed,
+      'amount': amount,
+      'unit': unit,
+      'foodType': foodType,
       'notes': notes,
     };
   }
 
-  factory FeedingRecord.fromJson(Map<String, dynamic> json) {
-    return FeedingRecord(
+  // Create from JSON
+  factory FeedingLog.fromJson(Map<String, dynamic> json) {
+    return FeedingLog(
       id: json['id'],
+      scheduleId: json['scheduleId'],
+      petId: json['petId'],
       timestamp: DateTime.fromMillisecondsSinceEpoch(json['timestamp']),
-      completed: json['completed'] ?? false,
+      amount: json['amount'],
+      unit: json['unit'],
+      foodType: json['foodType'],
       notes: json['notes'],
     );
+  }
+}
+
+// Helper class to represent time of day for serialization
+class FeedingTime {
+  final int hour;
+  final int minute;
+
+  const FeedingTime({required this.hour, required this.minute});
+
+  @override
+  String toString() {
+    final hourStr = hour.toString().padLeft(2, '0');
+    final minuteStr = minute.toString().padLeft(2, '0');
+    return '$hourStr:$minuteStr';
   }
 } 
