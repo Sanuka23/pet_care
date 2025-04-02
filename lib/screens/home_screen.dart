@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import 'dart:io';
 import 'vaccination_screen.dart';
 import 'appointment_screen.dart';
@@ -8,7 +9,9 @@ import 'activity_screen.dart';
 import 'playdate_screen.dart';
 import 'pet_profile_screen.dart';
 import '../services/pet_provider.dart';
+import '../services/vaccination_provider.dart';
 import '../models/pet_model.dart';
+import '../models/vaccination_model.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,10 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Load pets when the app starts
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<PetProvider>(context, listen: false).loadPets();
-    });
+    // Pet loading is now done in main.dart
   }
 
   @override
@@ -299,6 +299,19 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildQuickActions() {
+    final currentPet = Provider.of<PetProvider>(context).currentPet;
+    final vaccinationProvider = Provider.of<VaccinationProvider>(context);
+    
+    Vaccination? nextVaccination;
+    String? nextVaccinationText;
+    
+    if (currentPet != null) {
+      nextVaccination = vaccinationProvider.getNextVaccinationForPet(currentPet.id);
+      if (nextVaccination != null) {
+        nextVaccinationText = 'Due: ${DateFormat('MMM d').format(nextVaccination.nextDueDate)}';
+      }
+    }
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -314,9 +327,17 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisSpacing: 10,
           crossAxisSpacing: 10,
           children: [
-            _buildQuickActionCard('Vaccinations', Icons.medical_services, () {
-              setState(() => _currentIndex = 1);
-            }),
+            _buildQuickActionCard(
+              'Vaccinations', 
+              Icons.medical_services, 
+              () {
+                setState(() => _currentIndex = 1);
+              },
+              subtitle: nextVaccinationText,
+              subtitleColor: nextVaccination != null && 
+                            nextVaccination.nextDueDate.isBefore(DateTime.now()) ? 
+                            Colors.red : null,
+            ),
             _buildQuickActionCard('Appointments', Icons.calendar_today, () {
               setState(() => _currentIndex = 2);
             }),
@@ -341,7 +362,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildQuickActionCard(String title, IconData icon, VoidCallback onTap) {
+  Widget _buildQuickActionCard(
+    String title, 
+    IconData icon, 
+    VoidCallback onTap, {
+    String? subtitle,
+    Color? subtitleColor,
+  }) {
     return InkWell(
       onTap: onTap,
       child: Card(
@@ -358,6 +385,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: subtitleColor ?? Colors.grey[600],
+                  ),
+                ),
+              ],
             ],
           ),
         ),

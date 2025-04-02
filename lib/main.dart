@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart';
 import 'screens/home_screen.dart';
 import 'services/pet_provider.dart';
+import 'services/vaccination_provider.dart';
 
 void main() {
-  runApp(
-    ChangeNotifierProvider(
-      create: (context) => PetProvider(),
-      child: const PetCareApp(),
-    ),
-  );
+  runApp(const PetCareApp());
 }
 
 class PetCareApp extends StatelessWidget {
@@ -17,19 +14,29 @@ class PetCareApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Pet Care',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
-          secondary: Colors.amber,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (context) => PetProvider()..loadPets(),
         ),
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-        useMaterial3: true,
+        ChangeNotifierProvider(
+          create: (context) => VaccinationProvider()..loadVaccinations(),
+        ),
+      ],
+      child: MaterialApp(
+        title: 'Pet Care',
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.blue,
+            secondary: Colors.amber,
+          ),
+          visualDensity: VisualDensity.adaptivePlatformDensity,
+          useMaterial3: true,
+        ),
+        home: const HomeScreen(),
+        debugShowCheckedModeBanner: false,
       ),
-      home: const HomeScreen(),
-      debugShowCheckedModeBanner: false,
     );
   }
 }

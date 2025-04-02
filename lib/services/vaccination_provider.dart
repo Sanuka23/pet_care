@@ -1,10 +1,17 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/vaccination_model.dart';
 
 class VaccinationProvider with ChangeNotifier {
   List<Vaccination> _vaccinations = [];
+  bool _isTestEnvironment = false;
+
+  VaccinationProvider({bool isTest = false}) {
+    _isTestEnvironment = isTest;
+  }
 
   List<Vaccination> get vaccinations => _vaccinations;
 
@@ -66,6 +73,11 @@ class VaccinationProvider with ChangeNotifier {
 
   // Load vaccinations from local storage
   Future<void> loadVaccinations() async {
+    if (_isTestEnvironment) {
+      // Skip loading in test environment
+      return;
+    }
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final vaccinationsJson = prefs.getStringList('vaccinations') ?? [];
@@ -82,6 +94,11 @@ class VaccinationProvider with ChangeNotifier {
 
   // Save vaccinations to local storage
   Future<void> _saveVaccinations() async {
+    if (_isTestEnvironment) {
+      // Skip saving in test environment
+      return;
+    }
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final vaccinationsJson = _vaccinations

@@ -11,7 +11,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: ChangeNotifierProvider(
-          create: (_) => PetProvider(),
+          create: (_) => PetProvider(isTest: true),
           child: const PetProfileScreen(),
         ),
       ),
@@ -40,7 +40,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: ChangeNotifierProvider(
-          create: (_) => PetProvider(),
+          create: (_) => PetProvider(isTest: true),
           child: PetProfileScreen(pet: testPet),
         ),
       ),
