@@ -34,6 +34,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
         
+      - name: Format code
+        run: dart format .
+        
       - name: Set build command
         id: build_command
         run: |
