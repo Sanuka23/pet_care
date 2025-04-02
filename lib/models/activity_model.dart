@@ -8,6 +8,7 @@ class Activity {
   final String? location;
   final String? notes;
   final bool isCompleted;
+  final bool isReminder;
   final List<String>? photos;
 
   Activity({
@@ -20,6 +21,7 @@ class Activity {
     this.location,
     this.notes,
     this.isCompleted = false,
+    this.isReminder = false,
     this.photos,
   });
 
@@ -34,6 +36,7 @@ class Activity {
     String? location,
     String? notes,
     bool? isCompleted,
+    bool? isReminder,
     List<String>? photos,
   }) {
     return Activity(
@@ -46,6 +49,7 @@ class Activity {
       location: location ?? this.location,
       notes: notes ?? this.notes,
       isCompleted: isCompleted ?? this.isCompleted,
+      isReminder: isReminder ?? this.isReminder,
       photos: photos ?? this.photos,
     );
   }
@@ -57,11 +61,12 @@ class Activity {
       'petId': petId,
       'name': name,
       'type': type,
-      'date': date.millisecondsSinceEpoch,
+      'date': date.toIso8601String(),
       'durationMinutes': durationMinutes,
       'location': location,
       'notes': notes,
       'isCompleted': isCompleted,
+      'isReminder': isReminder,
       'photos': photos,
     };
   }
@@ -69,15 +74,16 @@ class Activity {
   // Create from JSON
   factory Activity.fromJson(Map<String, dynamic> json) {
     return Activity(
-      id: json['id'],
-      petId: json['petId'],
-      name: json['name'],
-      type: json['type'],
-      date: DateTime.fromMillisecondsSinceEpoch(json['date']),
-      durationMinutes: json['durationMinutes'],
-      location: json['location'],
-      notes: json['notes'],
-      isCompleted: json['isCompleted'] ?? false,
+      id: json['id'] as String,
+      petId: json['petId'] as String,
+      name: json['name'] as String,
+      type: json['type'] as String,
+      date: DateTime.parse(json['date'] as String),
+      durationMinutes: json['durationMinutes'] as int,
+      location: json['location'] as String?,
+      notes: json['notes'] as String?,
+      isCompleted: json['isCompleted'] as bool? ?? false,
+      isReminder: json['isReminder'] as bool? ?? false,
       photos: json['photos'] != null 
           ? List<String>.from(json['photos']) 
           : null,

@@ -3,10 +3,23 @@ import 'dart:convert';
 import 'dart:math';
 import '../models/activity_model.dart';
 import 'notification_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
 
 class ActivityProvider with ChangeNotifier {
   List<Activity> _activities = [];
-  final NotificationService _notificationService = NotificationService();
+  late NotificationService _notificationService;
+  final activityTypes = [
+    'Walk',
+    'Play',
+    'Training',
+    'Grooming',
+    'Other'
+  ];
+  
+  ActivityProvider() {
+    _notificationService = NotificationService();
+  }
   
   // Generate a random ID (replaces UUID)
   String _generateRandomId() {
@@ -156,73 +169,106 @@ class ActivityProvider with ChangeNotifier {
 
   // Load activities from storage
   Future<void> loadActivities() async {
-    // Initialize notifications
-    await _notificationService.initialize();
-    await _notificationService.requestPermissions();
+    final prefs = await SharedPreferences.getInstance();
+    final activitiesJson = prefs.getStringList('activities') ?? [];
     
-    // For testing, we'll add some mock data instead of loading from storage
-    if (_activities.isEmpty) {
-      final now = DateTime.now();
-      
-      // Mock activity types
-      final activityTypes = [
-        'Walk',
-        'Play',
-        'Training',
-        'Grooming',
-        'Socialization',
-        'Dog Park'
-      ];
-      
-      // Add some mock activities for two pets
-      _activities = [
-        Activity(
-          id: 'act1',
-          petId: '1',
-          name: 'Morning Walk',
-          type: 'Walk',
-          date: DateTime(now.year, now.month, now.day, 8, 0),
-          durationMinutes: 30,
-          location: 'Neighborhood Park',
-        ),
-        Activity(
-          id: 'act2',
-          petId: '1',
-          name: 'Training Session',
-          type: 'Training',
-          date: DateTime(now.year, now.month, now.day, 15, 0),
-          durationMinutes: 20,
-          notes: 'Focus on sit, stay, and recall commands',
-        ),
-        Activity(
-          id: 'act3',
-          petId: '2',
-          name: 'Dog Park Meetup',
-          type: 'Socialization',
-          date: DateTime(now.year, now.month, now.day + 1, 10, 0),
-          durationMinutes: 60,
-          location: 'Central Dog Park',
-          notes: 'Meeting with the dog group',
-        ),
-        Activity(
-          id: 'act4',
-          petId: '1',
-          name: 'Evening Walk',
-          type: 'Walk',
-          date: DateTime(now.year, now.month, now.day - 1, 19, 0),
-          durationMinutes: 45,
-          location: 'River Trail',
-          isCompleted: true,
-        ),
-      ];
-      
-      notifyListeners();
+    if (activitiesJson.isNotEmpty) {
+      _activities = activitiesJson
+          .map((json) => Activity.fromJson(jsonDecode(json)))
+          .toList();
+    } else {
+      // Add sample activities if none exist
+      _addSampleActivities();
     }
+    
+    notifyListeners();
+  }
+
+  void _addSampleActivities() {
+    final now = DateTime.now();
+    
+    // Sample activity for today (walking)
+    final todayWalk = Activity(
+      id: '1',
+      petId: '1', // Buddy's ID
+      name: 'Evening Walk',
+      type: 'Walk',
+      date: DateTime(now.year, now.month, now.day, 18, 30),
+      durationMinutes: 30,
+      notes: 'Regular evening walk in the park',
+      isReminder: true,
+      isCompleted: false,
+    );
+    
+    // Sample activity for tomorrow (training)
+    final tomorrowTraining = Activity(
+      id: '2',
+      petId: '1', // Buddy's ID
+      name: 'Basic Commands Training',
+      type: 'Training',
+      date: DateTime(now.year, now.month, now.day + 1, 10, 0),
+      durationMinutes: 20,
+      notes: 'Practice sit, stay, and fetch commands',
+      isReminder: true,
+      isCompleted: false,
+    );
+    
+    // Sample activity for 2 days later (grooming)
+    final groomingDay = Activity(
+      id: '3',
+      petId: '1', // Buddy's ID
+      name: 'Bath Time',
+      type: 'Grooming',
+      date: DateTime(now.year, now.month, now.day + 2, 14, 0),
+      durationMinutes: 45,
+      notes: 'Monthly bath and nail trimming',
+      isReminder: true,
+      isCompleted: false,
+    );
+    
+    // Sample completed activity (yesterday)
+    final yesterdayActivity = Activity(
+      id: '4',
+      petId: '1', // Buddy's ID
+      name: 'Morning Walk',
+      type: 'Walk',
+      date: DateTime(now.year, now.month, now.day - 1, 8, 0),
+      durationMinutes: 25,
+      notes: 'Quick morning walk around the block',
+      isReminder: false,
+      isCompleted: true,
+    );
+    
+    // Sample activity for cat
+    final catPlayTime = Activity(
+      id: '5',
+      petId: '2', // Whiskers' ID
+      name: 'Play Time',
+      type: 'Play',
+      date: DateTime(now.year, now.month, now.day, 17, 0),
+      durationMinutes: 15,
+      notes: 'Play with new toys',
+      isReminder: true,
+      isCompleted: false,
+    );
+    
+    _activities.addAll([
+      todayWalk,
+      tomorrowTraining,
+      groomingDay,
+      yesterdayActivity,
+      catPlayTime,
+    ]);
+    
+    _saveActivities();
   }
 
   // Save activities to storage
   Future<void> _saveActivities() async {
-    // For testing, we'll skip saving to storage
-    debugPrint('Saving activities data (skipped for testing)');
+    final prefs = await SharedPreferences.getInstance();
+    final activitiesJson = _activities.map((activity) => 
+      jsonEncode(activity.toJson())
+    ).toList();
+    await prefs.setStringList('activities', activitiesJson);
   }
 } 
