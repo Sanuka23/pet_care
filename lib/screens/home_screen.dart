@@ -11,6 +11,7 @@ import 'pet_profile_screen.dart';
 import '../services/pet_provider.dart';
 import '../services/vaccination_provider.dart';
 import '../services/appointment_provider.dart';
+import '../services/playdate_provider.dart';
 import '../models/pet_model.dart';
 import '../models/vaccination_model.dart';
 import '../models/appointment_model.dart';
@@ -36,6 +37,8 @@ class _HomeScreenState extends State<HomeScreen> {
       Provider.of<VaccinationProvider>(context, listen: false).loadVaccinations();
       // Load appointments
       Provider.of<AppointmentProvider>(context, listen: false).loadAppointments();
+      // Load playdates
+      Provider.of<PlaydateProvider>(context, listen: false).loadPlaydates();
     });
   }
 
@@ -459,6 +462,64 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
     
+    // If this is the Playdates card, show next playdate if available
+    if (title == 'Playdates') {
+      // Get current pet and playdate provider
+      final petProvider = Provider.of<PetProvider>(context, listen: false);
+      final playdateProvider = Provider.of<PlaydateProvider>(context, listen: false);
+      final currentPet = petProvider.currentPet;
+      
+      if (currentPet != null) {
+        // Get upcoming playdates for current pet
+        final upcomingPlaydates = playdateProvider.getUpcomingPlaydatesForPet(currentPet.id);
+        
+        // Sort by date to get the next one
+        if (upcomingPlaydates.isNotEmpty) {
+          upcomingPlaydates.sort((a, b) => a.date.compareTo(b.date));
+          final nextPlaydate = upcomingPlaydates.first;
+          
+          // Format date and time for display
+          final formattedDate = DateFormat('MMM dd').format(nextPlaydate.date);
+          final formattedTime = DateFormat('h:mm a').format(nextPlaydate.date);
+          
+          return InkWell(
+            onTap: onTap,
+            child: Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, size: 32, color: Theme.of(context).primaryColor),
+                    const SizedBox(height: 4),
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Next: $formattedDate $formattedTime',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    Text(
+                      nextPlaydate.title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+      }
+    }
+    
     // Default card without special info
     return InkWell(
       onTap: onTap,
@@ -488,29 +549,127 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context, petProvider, child) {
         final currentPet = petProvider.currentPet;
         
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Recent Activities',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            Card(
-              elevation: 2,
-              child: currentPet == null
-                ? const ListTile(
-                    leading: Icon(Icons.info_outline),
-                    title: Text('No recent activities'),
-                    subtitle: Text('Add a pet to get started'),
-                  )
-                : const ListTile(
-                    leading: Icon(Icons.info_outline),
-                    title: Text('No recent activities'),
-                    subtitle: Text('Your activities will appear here'),
+        if (currentPet == null) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Recent Activities',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              Card(
+                elevation: 2,
+                child: const ListTile(
+                  leading: Icon(Icons.info_outline),
+                  title: Text('No recent activities'),
+                  subtitle: Text('Add a pet to get started'),
+                ),
+              ),
+            ],
+          );
+        }
+        
+        return Consumer2<AppointmentProvider, PlaydateProvider>(
+          builder: (context, appointmentProvider, playdateProvider, child) {
+            // Get recent completed appointments
+            final completedAppointments = appointmentProvider.appointments
+                .where((appointment) => 
+                    appointment.petId == currentPet.id && 
+                    appointment.isCompleted)
+                .toList();
+                
+            // Sort by date (newest first)
+            completedAppointments.sort((a, b) => 
+                b.dateTime.compareTo(a.dateTime));
+                
+            final recentAppointments = completedAppointments.take(3).toList();
+            
+            // Get recent playdates (past playdates)
+            final pastPlaydates = playdateProvider.getPastPlaydatesForPet(currentPet.id);
+            
+            // Sort by date (newest first)
+            pastPlaydates.sort((a, b) => b.date.compareTo(a.date));
+            
+            final recentPlaydates = pastPlaydates.take(3).toList();
+            
+            // Combine activities
+            final allActivities = [
+              ...recentAppointments.map((appointment) => {
+                'type': 'appointment',
+                'title': appointment.title,
+                'date': appointment.dateTime,
+                'icon': Icons.calendar_today,
+              }),
+              ...recentPlaydates.map((playdate) => {
+                'type': 'playdate',
+                'title': playdate.title,
+                'date': playdate.date,
+                'icon': Icons.people,
+              }),
+            ];
+            
+            // Sort by date (newest first)
+            allActivities.sort((a, b) => 
+              (b['date'] as DateTime).compareTo(a['date'] as DateTime)
+            );
+            
+            if (allActivities.isEmpty) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Recent Activities',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-            ),
-          ],
+                  const SizedBox(height: 10),
+                  Card(
+                    elevation: 2,
+                    child: const ListTile(
+                      leading: Icon(Icons.info_outline),
+                      title: Text('No recent activities'),
+                      subtitle: Text('Your activities will appear here'),
+                    ),
+                  ),
+                ],
+              );
+            }
+            
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Recent Activities',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                ...allActivities.take(5).map((activity) => Card(
+                  elevation: 2,
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.blue.shade50,
+                      child: Icon(
+                        activity['icon'] as IconData,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                    title: Text(activity['title'] as String),
+                    subtitle: Text(
+                      DateFormat('MMM dd, yyyy').format(activity['date'] as DateTime),
+                    ),
+                    trailing: Text(
+                      activity['type'] as String == 'appointment' ? 'Appointment' : 'Playdate',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                )), // Limit to 5 most recent activities
+              ],
+            );
+          },
         );
       },
     );
