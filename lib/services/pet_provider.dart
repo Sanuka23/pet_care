@@ -6,11 +6,6 @@ import '../models/pet_model.dart';
 class PetProvider with ChangeNotifier {
   List<Pet> _pets = [];
   Pet? _currentPet;
-  bool _isTestEnvironment = false;
-
-  PetProvider({bool isTest = false}) {
-    _isTestEnvironment = isTest;
-  }
 
   List<Pet> get pets => _pets;
   Pet? get currentPet => _currentPet;
@@ -59,11 +54,6 @@ class PetProvider with ChangeNotifier {
 
   // Load pets from local storage
   Future<void> loadPets() async {
-    if (_isTestEnvironment) {
-      // Skip loading in test environment
-      return;
-    }
-
     try {
       final prefs = await SharedPreferences.getInstance();
       final petsJson = prefs.getStringList('pets') ?? [];
@@ -82,11 +72,6 @@ class PetProvider with ChangeNotifier {
 
   // Save pets to local storage
   Future<void> _savePets() async {
-    if (_isTestEnvironment) {
-      // Skip saving in test environment
-      return;
-    }
-
     try {
       final prefs = await SharedPreferences.getInstance();
       final petsJson = _pets.map((pet) => jsonEncode(_petToJson(pet))).toList();

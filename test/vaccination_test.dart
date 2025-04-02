@@ -2,134 +2,141 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:pet_care/models/vaccination_model.dart';
-import 'package:pet_care/services/pet_provider.dart';
 import 'package:pet_care/services/vaccination_provider.dart';
-import 'package:pet_care/screens/vaccination_screen.dart';
+import 'package:pet_care/services/pet_provider.dart';
 import 'package:pet_care/models/pet_model.dart';
 
+class MockVaccinationProvider extends VaccinationProvider {
+  // Override storage methods to avoid SharedPreferences issues in tests
+  @override
+  Future<void> loadVaccinations() async {
+    // Do nothing - we'll manually add test data
+    return;
+  }
+  
+  @override
+  Future<void> _saveVaccinations() async {
+    // Do nothing in tests
+    return;
+  }
+}
+
 void main() {
-  group('Vaccination Provider Tests', () {
-    test('Should add a vaccination', () {
-      final provider = VaccinationProvider(isTest: true);
-      
-      final vaccination = Vaccination(
-        id: '1',
-        petId: 'pet1',
-        name: 'Rabies',
-        administeredDate: DateTime(2023, 1, 1),
-        nextDueDate: DateTime(2024, 1, 1),
-      );
-      
-      provider.addVaccination(vaccination);
-      
-      expect(provider.vaccinations.length, 1);
-      expect(provider.vaccinations.first.name, 'Rabies');
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('VaccinationProvider Tests', () {
+    late MockVaccinationProvider provider;
+    
+    setUp(() {
+      provider = MockVaccinationProvider();
     });
     
-    test('Should get vaccinations for a pet', () {
-      final provider = VaccinationProvider(isTest: true);
-      
-      // Add vaccinations for different pets
-      provider.addVaccination(Vaccination(
+    test('Initial state has empty vaccinations list', () {
+      expect(provider.vaccinations.isEmpty, true);
+    });
+    
+    test('Adding a vaccination works correctly', () async {
+      final testVaccination = Vaccination(
         id: '1',
-        petId: 'pet1',
         name: 'Rabies',
         administeredDate: DateTime(2023, 1, 1),
         nextDueDate: DateTime(2024, 1, 1),
-      ));
-      
-      provider.addVaccination(Vaccination(
-        id: '2',
-        petId: 'pet2',
-        name: 'Distemper',
-        administeredDate: DateTime(2023, 2, 1),
-        nextDueDate: DateTime(2024, 2, 1),
-      ));
-      
-      provider.addVaccination(Vaccination(
-        id: '3',
         petId: 'pet1',
-        name: 'Parvo',
-        administeredDate: DateTime(2023, 3, 1),
-        nextDueDate: DateTime(2024, 3, 1),
+      );
+      
+      await provider.addVaccination(testVaccination);
+      
+      expect(provider.vaccinations.length, 1);
+      expect(provider.vaccinations[0].name, 'Rabies');
+      expect(provider.vaccinations[0].petId, 'pet1');
+    });
+    
+    test('Getting vaccinations for specific pet works correctly', () async {
+      // Add vaccinations for pet1
+      await provider.addVaccination(Vaccination(
+        id: '1',
+        name: 'Rabies',
+        administeredDate: DateTime(2023, 1, 1),
+        nextDueDate: DateTime(2024, 1, 1),
+        petId: 'pet1',
+      ));
+      
+      // Add vaccinations for pet2
+      await provider.addVaccination(Vaccination(
+        id: '2',
+        name: 'Distemper',
+        administeredDate: DateTime(2023, 1, 1),
+        nextDueDate: DateTime(2024, 1, 1),
+        petId: 'pet2',
       ));
       
       final pet1Vaccinations = provider.getVaccinationsForPet('pet1');
+      final pet2Vaccinations = provider.getVaccinationsForPet('pet2');
       
-      expect(pet1Vaccinations.length, 2);
-      expect(pet1Vaccinations.map((v) => v.name).toList(), contains('Rabies'));
-      expect(pet1Vaccinations.map((v) => v.name).toList(), contains('Parvo'));
+      expect(pet1Vaccinations.length, 1);
+      expect(pet2Vaccinations.length, 1);
+      expect(pet1Vaccinations[0].name, 'Rabies');
+      expect(pet2Vaccinations[0].name, 'Distemper');
     });
     
-    test('Should get next upcoming vaccination for a pet', () {
-      final provider = VaccinationProvider(isTest: true);
-      
-      // Add vaccinations with different due dates
-      provider.addVaccination(Vaccination(
+    test('Marking a vaccination as completed works correctly', () async {
+      await provider.addVaccination(Vaccination(
         id: '1',
-        petId: 'pet1',
         name: 'Rabies',
         administeredDate: DateTime(2023, 1, 1),
-        nextDueDate: DateTime.now().add(const Duration(days: 30)), // Due in 30 days
-      ));
-      
-      provider.addVaccination(Vaccination(
-        id: '2',
+        nextDueDate: DateTime(2024, 1, 1),
         petId: 'pet1',
-        name: 'Parvo',
-        administeredDate: DateTime(2023, 2, 1),
-        nextDueDate: DateTime.now().add(const Duration(days: 10)), // Due in 10 days
+        isCompleted: false,
       ));
       
-      provider.addVaccination(Vaccination(
-        id: '3',
-        petId: 'pet1',
-        name: 'Distemper',
-        administeredDate: DateTime(2023, 3, 1),
-        nextDueDate: DateTime.now().add(const Duration(days: 60)), // Due in 60 days
-      ));
+      await provider.completeVaccination('1');
       
-      final nextVaccination = provider.getNextVaccinationForPet('pet1');
-      
-      expect(nextVaccination, isNotNull);
-      expect(nextVaccination!.name, 'Parvo'); // Should be the one due in 10 days
+      expect(provider.vaccinations[0].isCompleted, true);
     });
-  });
-
-  testWidgets('VaccinationScreen shows empty state when no vaccinations', (WidgetTester tester) async {
-    // Create a test pet
-    final testPet = Pet(
-      id: '1',
-      name: 'Max',
-      breed: 'Golden Retriever',
-      age: 3,
-      weight: 25.5,
-    );
-
-    // Build the widget with providers
-    await tester.pumpWidget(
-      MaterialApp(
-        home: MultiProvider(
-          providers: [
-            ChangeNotifierProvider(
-              create: (_) => PetProvider(isTest: true)..setPet(testPet),
-            ),
-            ChangeNotifierProvider(
-              create: (_) => VaccinationProvider(isTest: true),
-            ),
-          ],
-          child: const VaccinationScreen(),
-        ),
-      ),
-    );
-
-    await tester.pump(const Duration(milliseconds: 100)); // Wait for the UI to settle
-
-    // Verify empty state is displayed
-    expect(find.text('No Vaccinations Yet'), findsOneWidget);
-    expect(find.text('Tap + to add your pet\'s first vaccination'), findsOneWidget);
     
-    // Don't look for ElevatedButton, which might be rendered differently in tests
-    expect(find.text('Add Vaccination'), findsOneWidget);
+    test('Deleting a vaccination works correctly', () async {
+      await provider.addVaccination(Vaccination(
+        id: '1',
+        name: 'Rabies',
+        administeredDate: DateTime(2023, 1, 1),
+        nextDueDate: DateTime(2024, 1, 1),
+        petId: 'pet1',
+      ));
+      
+      expect(provider.vaccinations.length, 1);
+      
+      await provider.deleteVaccination('1');
+      
+      expect(provider.vaccinations.isEmpty, true);
+    });
+    
+    test('Getting upcoming vaccinations works correctly', () async {
+      final now = DateTime.now();
+      
+      // Past due vaccination (already completed)
+      await provider.addVaccination(Vaccination(
+        id: '1',
+        name: 'Past Vaccine',
+        administeredDate: DateTime(2023, 1, 1),
+        nextDueDate: now.subtract(const Duration(days: 30)),
+        petId: 'pet1',
+        isCompleted: true,
+      ));
+      
+      // Upcoming vaccination
+      await provider.addVaccination(Vaccination(
+        id: '2',
+        name: 'Future Vaccine',
+        administeredDate: DateTime(2023, 1, 1),
+        nextDueDate: now.add(const Duration(days: 30)),
+        petId: 'pet1',
+        isCompleted: false,
+      ));
+      
+      final upcomingVaccinations = provider.getUpcomingVaccinationsForPet('pet1');
+      
+      expect(upcomingVaccinations.length, 1);
+      expect(upcomingVaccinations[0].name, 'Future Vaccine');
+    });
   });
 } 

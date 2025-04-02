@@ -1,56 +1,51 @@
 class Vaccination {
   final String id;
-  final String petId;
   final String name;
   final DateTime administeredDate;
   final DateTime nextDueDate;
-  final String? veterinarian;
+  final String petId;
   final String? notes;
   final bool isCompleted;
 
   Vaccination({
     required this.id,
-    required this.petId,
     required this.name,
     required this.administeredDate,
     required this.nextDueDate,
-    this.veterinarian,
+    required this.petId,
     this.notes,
     this.isCompleted = false,
   });
 
-  // Create a copy of this Vaccination with modified fields
+  // Create a copy of this vaccination with modified fields
   Vaccination copyWith({
     String? id,
-    String? petId,
     String? name,
     DateTime? administeredDate,
     DateTime? nextDueDate,
-    String? veterinarian,
+    String? petId,
     String? notes,
     bool? isCompleted,
   }) {
     return Vaccination(
       id: id ?? this.id,
-      petId: petId ?? this.petId,
       name: name ?? this.name,
       administeredDate: administeredDate ?? this.administeredDate,
       nextDueDate: nextDueDate ?? this.nextDueDate,
-      veterinarian: veterinarian ?? this.veterinarian,
+      petId: petId ?? this.petId,
       notes: notes ?? this.notes,
       isCompleted: isCompleted ?? this.isCompleted,
     );
   }
 
-  // Convert to JSON for storage
+  // Convert to JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'petId': petId,
       'name': name,
-      'administeredDate': administeredDate.toIso8601String(),
-      'nextDueDate': nextDueDate.toIso8601String(),
-      'veterinarian': veterinarian,
+      'administeredDate': administeredDate.millisecondsSinceEpoch,
+      'nextDueDate': nextDueDate.millisecondsSinceEpoch,
+      'petId': petId,
       'notes': notes,
       'isCompleted': isCompleted,
     };
@@ -60,11 +55,10 @@ class Vaccination {
   factory Vaccination.fromJson(Map<String, dynamic> json) {
     return Vaccination(
       id: json['id'],
-      petId: json['petId'],
       name: json['name'],
-      administeredDate: DateTime.parse(json['administeredDate']),
-      nextDueDate: DateTime.parse(json['nextDueDate']),
-      veterinarian: json['veterinarian'],
+      administeredDate: DateTime.fromMillisecondsSinceEpoch(json['administeredDate']),
+      nextDueDate: DateTime.fromMillisecondsSinceEpoch(json['nextDueDate']),
+      petId: json['petId'],
       notes: json['notes'],
       isCompleted: json['isCompleted'] ?? false,
     );

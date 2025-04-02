@@ -1,17 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:uuid/uuid.dart';
 import '../models/vaccination_model.dart';
 
 class VaccinationProvider with ChangeNotifier {
   List<Vaccination> _vaccinations = [];
-  bool _isTestEnvironment = false;
-
-  VaccinationProvider({bool isTest = false}) {
-    _isTestEnvironment = isTest;
-  }
+  final Uuid _uuid = const Uuid();
 
   List<Vaccination> get vaccinations => _vaccinations;
 
@@ -24,60 +19,61 @@ class VaccinationProvider with ChangeNotifier {
   List<Vaccination> getUpcomingVaccinationsForPet(String petId) {
     final now = DateTime.now();
     return _vaccinations
-        .where((v) => v.petId == petId && 
-                      v.nextDueDate.isAfter(now) && 
-                      !v.isCompleted)
-        .toList()
-        ..sort((a, b) => a.nextDueDate.compareTo(b.nextDueDate));
+        .where((v) => v.petId == petId && v.nextDueDate.isAfter(now) && !v.isCompleted)
+        .toList();
   }
 
-  // Get nearest upcoming vaccination for a pet
+  // Get next upcoming vaccination for a specific pet
   Vaccination? getNextVaccinationForPet(String petId) {
     final upcomingVaccinations = getUpcomingVaccinationsForPet(petId);
-    return upcomingVaccinations.isNotEmpty ? upcomingVaccinations.first : null;
+    if (upcomingVaccinations.isEmpty) return null;
+    
+    // Sort by due date (earliest first)
+    upcomingVaccinations.sort((a, b) => a.nextDueDate.compareTo(b.nextDueDate));
+    return upcomingVaccinations.first;
   }
 
   // Add a new vaccination
-  void addVaccination(Vaccination vaccination) {
-    _vaccinations.add(vaccination);
-    _saveVaccinations();
+  Future<void> addVaccination(Vaccination vaccination) async {
+    // Generate ID if not provided
+    final vaccinationWithId = vaccination.id.isEmpty 
+        ? vaccination.copyWith(id: _uuid.v4()) 
+        : vaccination;
+        
+    _vaccinations.add(vaccinationWithId);
+    await _saveVaccinations();
     notifyListeners();
   }
 
   // Update an existing vaccination
-  void updateVaccination(Vaccination vaccination) {
+  Future<void> updateVaccination(Vaccination vaccination) async {
     final index = _vaccinations.indexWhere((v) => v.id == vaccination.id);
     if (index >= 0) {
       _vaccinations[index] = vaccination;
-      _saveVaccinations();
+      await _saveVaccinations();
       notifyListeners();
     }
   }
 
   // Delete a vaccination
-  void deleteVaccination(String vaccinationId) {
-    _vaccinations.removeWhere((v) => v.id == vaccinationId);
-    _saveVaccinations();
+  Future<void> deleteVaccination(String id) async {
+    _vaccinations.removeWhere((v) => v.id == id);
+    await _saveVaccinations();
     notifyListeners();
   }
 
-  // Mark a vaccination as completed
-  void markVaccinationAsCompleted(String vaccinationId, {bool completed = true}) {
-    final index = _vaccinations.indexWhere((v) => v.id == vaccinationId);
+  // Mark vaccination as completed
+  Future<void> completeVaccination(String id) async {
+    final index = _vaccinations.indexWhere((v) => v.id == id);
     if (index >= 0) {
-      _vaccinations[index] = _vaccinations[index].copyWith(isCompleted: completed);
-      _saveVaccinations();
+      _vaccinations[index] = _vaccinations[index].copyWith(isCompleted: true);
+      await _saveVaccinations();
       notifyListeners();
     }
   }
 
   // Load vaccinations from local storage
   Future<void> loadVaccinations() async {
-    if (_isTestEnvironment) {
-      // Skip loading in test environment
-      return;
-    }
-
     try {
       final prefs = await SharedPreferences.getInstance();
       final vaccinationsJson = prefs.getStringList('vaccinations') ?? [];
@@ -94,11 +90,6 @@ class VaccinationProvider with ChangeNotifier {
 
   // Save vaccinations to local storage
   Future<void> _saveVaccinations() async {
-    if (_isTestEnvironment) {
-      // Skip saving in test environment
-      return;
-    }
-
     try {
       final prefs = await SharedPreferences.getInstance();
       final vaccinationsJson = _vaccinations

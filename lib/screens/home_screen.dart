@@ -26,7 +26,13 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Pet loading is now done in main.dart
+    // Load data when the app starts
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Load pets
+      Provider.of<PetProvider>(context, listen: false).loadPets();
+      // Load vaccinations
+      Provider.of<VaccinationProvider>(context, listen: false).loadVaccinations();
+    });
   }
 
   @override
@@ -299,19 +305,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildQuickActions() {
-    final currentPet = Provider.of<PetProvider>(context).currentPet;
-    final vaccinationProvider = Provider.of<VaccinationProvider>(context);
-    
-    Vaccination? nextVaccination;
-    String? nextVaccinationText;
-    
-    if (currentPet != null) {
-      nextVaccination = vaccinationProvider.getNextVaccinationForPet(currentPet.id);
-      if (nextVaccination != null) {
-        nextVaccinationText = 'Due: ${DateFormat('MMM d').format(nextVaccination.nextDueDate)}';
-      }
-    }
-    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -327,17 +320,9 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisSpacing: 10,
           crossAxisSpacing: 10,
           children: [
-            _buildQuickActionCard(
-              'Vaccinations', 
-              Icons.medical_services, 
-              () {
-                setState(() => _currentIndex = 1);
-              },
-              subtitle: nextVaccinationText,
-              subtitleColor: nextVaccination != null && 
-                            nextVaccination.nextDueDate.isBefore(DateTime.now()) ? 
-                            Colors.red : null,
-            ),
+            _buildQuickActionCard('Vaccinations', Icons.medical_services, () {
+              setState(() => _currentIndex = 1);
+            }),
             _buildQuickActionCard('Appointments', Icons.calendar_today, () {
               setState(() => _currentIndex = 2);
             }),
@@ -362,13 +347,61 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildQuickActionCard(
-    String title, 
-    IconData icon, 
-    VoidCallback onTap, {
-    String? subtitle,
-    Color? subtitleColor,
-  }) {
+  Widget _buildQuickActionCard(String title, IconData icon, VoidCallback onTap) {
+    // If this is the Vaccinations card, show next vaccination date if available
+    if (title == 'Vaccinations') {
+      // Get current pet and vaccination provider
+      final petProvider = Provider.of<PetProvider>(context, listen: false);
+      final vaccinationProvider = Provider.of<VaccinationProvider>(context, listen: false);
+      final currentPet = petProvider.currentPet;
+      
+      if (currentPet != null) {
+        // Get next vaccination for current pet
+        final nextVaccination = vaccinationProvider.getNextVaccinationForPet(currentPet.id);
+        
+        if (nextVaccination != null) {
+          // Format date for display
+          final formattedDate = DateFormat('MMM dd, yyyy').format(nextVaccination.nextDueDate);
+          
+          return InkWell(
+            onTap: onTap,
+            child: Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, size: 32, color: Theme.of(context).primaryColor),
+                    const SizedBox(height: 4),
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Next: $formattedDate',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    Text(
+                      nextVaccination.name,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+      }
+    }
+    
+    // Default card without vaccination info
     return InkWell(
       onTap: onTap,
       child: Card(
@@ -385,17 +418,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-              if (subtitle != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: subtitleColor ?? Colors.grey[600],
-                  ),
-                ),
-              ],
             ],
           ),
         ),

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../services/pet_provider.dart';
-import '../services/vaccination_provider.dart';
 import '../models/vaccination_model.dart';
+import '../services/vaccination_provider.dart';
+import '../services/pet_provider.dart';
 import 'vaccination_form_screen.dart';
 
 class VaccinationScreen extends StatelessWidget {
@@ -11,198 +11,249 @@ class VaccinationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Vaccinations'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _addVaccination(context),
+    return Consumer2<PetProvider, VaccinationProvider>(
+      builder: (context, petProvider, vaccinationProvider, child) {
+        final currentPet = petProvider.currentPet;
+
+        if (currentPet == null) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Vaccinations'),
+            ),
+            body: const Center(
+              child: Text('Please add a pet first to manage vaccinations'),
+            ),
+          );
+        }
+
+        // Get vaccinations for the current pet
+        final vaccinations = vaccinationProvider.getVaccinationsForPet(currentPet.id);
+        
+        // Sort by next due date
+        vaccinations.sort((a, b) => a.nextDueDate.compareTo(b.nextDueDate));
+        
+        // Separate upcoming and completed vaccinations
+        final upcomingVaccinations = vaccinations.where((v) => !v.isCompleted).toList();
+        final completedVaccinations = vaccinations.where((v) => v.isCompleted).toList();
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Text('${currentPet.name}\'s Vaccinations'),
           ),
-        ],
-      ),
-      body: _buildVaccinationList(context),
+          body: vaccinations.isEmpty 
+              ? _buildEmptyState(context, currentPet.id)
+              : _buildVaccinationList(context, upcomingVaccinations, completedVaccinations),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () => _addVaccination(context, currentPet.id),
+            child: const Icon(Icons.add),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildVaccinationList(BuildContext context) {
-    final petProvider = Provider.of<PetProvider>(context);
-    final vaccinationProvider = Provider.of<VaccinationProvider>(context);
-    final currentPet = petProvider.currentPet;
+  Widget _buildEmptyState(BuildContext context, String petId) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.medical_services_outlined,
+            size: 80,
+            color: Colors.grey,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'No Vaccinations Added Yet',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Add vaccination records to keep track of your pet\'s health',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () => _addVaccination(context, petId),
+            icon: const Icon(Icons.add),
+            label: const Text('Add Vaccination'),
+          ),
+        ],
+      ),
+    );
+  }
 
-    if (currentPet == null) {
-      return const Center(
-        child: Text('Please add a pet first'),
-      );
-    }
-
-    final vaccinations = vaccinationProvider.getVaccinationsForPet(currentPet.id);
-
-    if (vaccinations.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.medical_services_outlined, size: 70, color: Colors.grey),
-            const SizedBox(height: 16),
+  Widget _buildVaccinationList(
+    BuildContext context, 
+    List<Vaccination> upcomingVaccinations, 
+    List<Vaccination> completedVaccinations
+  ) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Upcoming vaccinations section
+          if (upcomingVaccinations.isNotEmpty) ...[
             const Text(
-              'No Vaccinations Yet',
+              'Upcoming',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text('Tap + to add your pet\'s first vaccination'),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () => _addVaccination(context),
-              icon: const Icon(Icons.add),
-              label: const Text('Add Vaccination'),
+            ...upcomingVaccinations.map((vaccination) => 
+              _buildVaccinationCard(context, vaccination)
+            ),
+            const SizedBox(height: 16),
+          ],
+          
+          // Completed vaccinations section
+          if (completedVaccinations.isNotEmpty) ...[
+            const Text(
+              'Completed',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            ...completedVaccinations.map((vaccination) => 
+              _buildVaccinationCard(context, vaccination)
             ),
           ],
-        ),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text(
-            'Upcoming Vaccinations',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: vaccinations.length,
-            itemBuilder: (context, index) {
-              final vaccination = vaccinations[index];
-              return _buildVaccinationCard(context, vaccination);
-            },
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildVaccinationCard(BuildContext context, Vaccination vaccination) {
-    final dateFormat = DateFormat('MMM d, yyyy');
-    final dueDate = dateFormat.format(vaccination.nextDueDate);
-    final isDue = vaccination.nextDueDate.isBefore(DateTime.now());
+    final formattedAdministeredDate = DateFormat('MMM dd, yyyy').format(vaccination.administeredDate);
+    final formattedNextDueDate = DateFormat('MMM dd, yyyy').format(vaccination.nextDueDate);
+    final now = DateTime.now();
+    final daysUntilDue = vaccination.nextDueDate.difference(now).inDays;
     
+    // Determine card color based on due date
+    Color cardColor = Colors.white;
+    if (!vaccination.isCompleted) {
+      if (daysUntilDue < 0) {
+        cardColor = Colors.red.shade50; // Overdue
+      } else if (daysUntilDue < 30) {
+        cardColor = Colors.orange.shade50; // Due soon
+      } else {
+        cardColor = Colors.green.shade50; // Not due yet
+      }
+    }
+
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: InkWell(
-        onTap: () => _editVaccination(context, vaccination),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      vaccination.name,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+      margin: const EdgeInsets.only(bottom: 12),
+      color: cardColor,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    vaccination.name,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  _buildStatusChip(vaccination, isDue),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.event, size: 16, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Due: $dueDate',
-                    style: TextStyle(
-                      color: isDue && !vaccination.isCompleted
-                          ? Colors.red
-                          : Colors.grey[600],
-                    ),
+                ),
+                if (!vaccination.isCompleted)
+                  IconButton(
+                    icon: const Icon(Icons.check_circle_outline),
+                    tooltip: 'Mark as completed',
+                    onPressed: () => _markAsCompleted(context, vaccination),
                   ),
-                ],
-              ),
-              if (vaccination.veterinarian != null && vaccination.veterinarian!.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.person, size: 16, color: Colors.grey),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Vet: ${vaccination.veterinarian}',
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                  ],
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  tooltip: 'Edit vaccination',
+                  onPressed: () => _editVaccination(context, vaccination),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete),
+                  tooltip: 'Delete vaccination',
+                  onPressed: () => _deleteVaccination(context, vaccination),
                 ),
               ],
+            ),
+            const SizedBox(height: 8),
+            _buildInfoRow('Administered', formattedAdministeredDate),
+            _buildInfoRow('Next Due', formattedNextDueDate),
+            if (vaccination.notes != null && vaccination.notes!.isNotEmpty)
+              _buildInfoRow('Notes', vaccination.notes!),
+            if (!vaccination.isCompleted) ...[
               const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton.icon(
-                    icon: const Icon(Icons.edit),
-                    label: const Text('Edit'),
-                    onPressed: () => _editVaccination(context, vaccination),
-                  ),
-                  const SizedBox(width: 8),
-                  if (!vaccination.isCompleted)
-                    TextButton.icon(
-                      icon: const Icon(Icons.check_circle_outline),
-                      label: const Text('Complete'),
-                      onPressed: () => _markAsCompleted(context, vaccination),
-                    ),
-                ],
-              ),
+              _buildDueIndicator(daysUntilDue),
             ],
-          ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildStatusChip(Vaccination vaccination, bool isDue) {
-    if (vaccination.isCompleted) {
-      return Chip(
-        label: const Text('Completed'),
-        backgroundColor: Colors.green[100],
-        labelStyle: TextStyle(color: Colors.green[800]),
-      );
-    } else if (isDue) {
-      return Chip(
-        label: const Text('Overdue'),
-        backgroundColor: Colors.red[100],
-        labelStyle: TextStyle(color: Colors.red[800]),
-      );
-    } else {
-      return Chip(
-        label: const Text('Upcoming'),
-        backgroundColor: Colors.blue[100],
-        labelStyle: TextStyle(color: Colors.blue[800]),
-      );
-    }
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              '$label:',
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(value),
+          ),
+        ],
+      ),
+    );
   }
 
-  void _addVaccination(BuildContext context) {
-    final currentPet = Provider.of<PetProvider>(context, listen: false).currentPet;
+  Widget _buildDueIndicator(int daysUntilDue) {
+    String message;
+    Color color;
     
-    if (currentPet == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add a pet first')),
-      );
-      return;
+    if (daysUntilDue < 0) {
+      message = 'Overdue by ${-daysUntilDue} days';
+      color = Colors.red;
+    } else if (daysUntilDue == 0) {
+      message = 'Due today';
+      color = Colors.orange;
+    } else if (daysUntilDue <= 30) {
+      message = 'Due in $daysUntilDue days';
+      color = Colors.orange;
+    } else {
+      message = 'Due in $daysUntilDue days';
+      color = Colors.green;
     }
     
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withOpacity(0.5)),
+      ),
+      child: Text(
+        message,
+        style: TextStyle(color: color, fontWeight: FontWeight.w500),
+      ),
+    );
+  }
+
+  void _addVaccination(BuildContext context, String petId) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => VaccinationFormScreen(petId: currentPet.id),
+        builder: (context) => VaccinationFormScreen(petId: petId),
       ),
     );
   }
@@ -212,27 +263,39 @@ class VaccinationScreen extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (context) => VaccinationFormScreen(
-          vaccination: vaccination,
           petId: vaccination.petId,
+          vaccination: vaccination,
         ),
       ),
     );
   }
 
   void _markAsCompleted(BuildContext context, Vaccination vaccination) {
-    Provider.of<VaccinationProvider>(context, listen: false)
-        .markVaccinationAsCompleted(vaccination.id);
+    final vaccinationProvider = Provider.of<VaccinationProvider>(context, listen: false);
+    vaccinationProvider.completeVaccination(vaccination.id);
+  }
+
+  void _deleteVaccination(BuildContext context, Vaccination vaccination) {
+    final vaccinationProvider = Provider.of<VaccinationProvider>(context, listen: false);
     
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${vaccination.name} marked as completed'),
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: () {
-            Provider.of<VaccinationProvider>(context, listen: false)
-                .markVaccinationAsCompleted(vaccination.id, completed: false);
-          },
-        ),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Vaccination'),
+        content: Text('Are you sure you want to delete "${vaccination.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              vaccinationProvider.deleteVaccination(vaccination.id);
+              Navigator.pop(context);
+            },
+            child: const Text('Delete'),
+          ),
+        ],
       ),
     );
   }

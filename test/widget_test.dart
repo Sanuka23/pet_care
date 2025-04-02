@@ -5,21 +5,48 @@ import 'package:provider/provider.dart';
 import 'package:pet_care/services/pet_provider.dart';
 import 'package:pet_care/services/vaccination_provider.dart';
 
+class MockPetProvider extends PetProvider {
+  @override
+  Future<void> loadPets() async {
+    // Do nothing in tests
+    return;
+  }
+  
+  @override
+  Future<void> _savePets() async {
+    // Do nothing in tests
+    return;
+  }
+}
+
+class MockVaccinationProvider extends VaccinationProvider {
+  @override
+  Future<void> loadVaccinations() async {
+    // Do nothing in tests
+    return;
+  }
+  
+  @override
+  Future<void> _saveVaccinations() async {
+    // Do nothing in tests
+    return;
+  }
+}
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  
   testWidgets('App initializes properly', (WidgetTester tester) async {
-    // Build our app with providers
+    // Build our app and trigger a frame.
     await tester.pumpWidget(
       MultiProvider(
         providers: [
-          ChangeNotifierProvider(create: (context) => PetProvider()),
-          ChangeNotifierProvider(create: (context) => VaccinationProvider(isTest: true)),
+          ChangeNotifierProvider(create: (context) => MockPetProvider()),
+          ChangeNotifierProvider(create: (context) => MockVaccinationProvider()),
         ],
         child: const PetCareApp(),
       ),
     );
-
-    // Wait for the UI to settle
-    await tester.pump();
 
     // Verify that the app renders without errors
     expect(find.byType(MaterialApp), findsOneWidget);
