@@ -57,16 +57,36 @@ jobs:
           path: ${{ steps.build_command.outputs.artifact_path }}
           retention-days: 14
           
-      - name: Create GitHub Release
-        if: ${{ github.event.inputs.create_release == 'true' && github.event.inputs.build_type == 'release' }}
+      - name: Create GitHub Release for Debug APK
+        if: ${{ github.event.inputs.build_type == 'debug' }}
         uses: ncipollo/release-action@v1
         with:
           artifacts: ${{ steps.build_command.outputs.artifact_path }}
-          tag: v1.0.${{ github.run_number }}-manual
-          name: Release v1.0.${{ github.run_number }} (Manual)
+          tag: debug-${{ github.ref_name }}-${{ github.run_number }}
+          name: Debug Build - ${{ github.ref_name }} #${{ github.run_number }}
           body: |
-            Manual release created from branch: ${{ github.ref_name }}
+            Debug APK built from branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            
+            This is a debug build for testing purposes.
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: false
+          prerelease: true
+          allowUpdates: true
+      
+      - name: Create GitHub Release for Release APK
+        if: ${{ github.event.inputs.build_type == 'release' }}
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: ${{ steps.build_command.outputs.artifact_path }}
+          tag: v1.0.${{ github.run_number }}-${{ github.ref_name }}
+          name: Release v1.0.${{ github.run_number }} - ${{ github.ref_name }}
+          body: |
+            Release APK built from branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
             
             Build type: ${{ github.event.inputs.build_type }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          draft: true 
+          draft: false
+          prerelease: ${{ github.ref != 'refs/heads/master' }}
+          allowUpdates: true 

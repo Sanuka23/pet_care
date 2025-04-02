@@ -99,4 +99,5 @@ jobs:
             Changes in this release:
             - Latest changes from master branch
           token: ${{ secrets.GITHUB_TOKEN }}
-          draft: true 
+          draft: false
+          prerelease: false 
