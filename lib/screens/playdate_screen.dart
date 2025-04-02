@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'dart:io';
 import '../models/playdate_model.dart';
 import '../services/playdate_provider.dart';
 import '../services/pet_provider.dart';
@@ -248,16 +249,13 @@ class _PlaydateScreenState extends State<PlaydateScreen> with SingleTickerProvid
                       const SizedBox(height: 4),
                       Text(
                         '${playdate.durationMinutes} min',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
+                        style: const TextStyle(fontSize: 12),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Playdate details
+                // Right side with playdate details
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,18 +264,35 @@ class _PlaydateScreenState extends State<PlaydateScreen> with SingleTickerProvid
                         playdate.title,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 18,
+                          fontSize: 16,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                          const Icon(Icons.location_on, size: 16),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               playdate.location,
-                              style: const TextStyle(color: Colors.grey),
+                              style: TextStyle(color: Colors.grey[700]),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.people_alt_outlined, size: 16),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              'Participants: ${playdate.participants.join(", ")}',
+                              style: TextStyle(color: Colors.grey[700]),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -286,11 +301,15 @@ class _PlaydateScreenState extends State<PlaydateScreen> with SingleTickerProvid
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.contact_phone, size: 16, color: Colors.grey),
+                            const Icon(Icons.contact_phone, size: 16),
                             const SizedBox(width: 4),
-                            Text(
-                              playdate.contactInfo!,
-                              style: const TextStyle(color: Colors.grey),
+                            Expanded(
+                              child: Text(
+                                'Contact: ${playdate.contactInfo}',
+                                style: TextStyle(color: Colors.grey[700]),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ],
                         ),
@@ -298,77 +317,74 @@ class _PlaydateScreenState extends State<PlaydateScreen> with SingleTickerProvid
                     ],
                   ),
                 ),
-                // Action menu
-                PopupMenuButton<String>(
-                  onSelected: (value) => _handleMenuAction(value, playdate),
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Text('Edit'),
+              ],
+            ),
+            
+            // Status chips and action buttons
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Status chip
+                Chip(
+                  label: Text(
+                    isPast 
+                        ? 'Completed' 
+                        : playdate.isConfirmed 
+                            ? 'Confirmed' 
+                            : 'Unconfirmed',
+                    style: TextStyle(
+                      color: isPast 
+                          ? Colors.grey[700] 
+                          : playdate.isConfirmed 
+                              ? Colors.green[700] 
+                              : Colors.blue[700],
+                      fontSize: 12,
                     ),
-                    if (!playdate.isConfirmed)
-                      const PopupMenuItem(
-                        value: 'confirm',
-                        child: Text('Confirm'),
+                  ),
+                  backgroundColor: isPast 
+                      ? Colors.grey[100] 
+                      : playdate.isConfirmed 
+                          ? Colors.green[50] 
+                          : Colors.blue[50],
+                ),
+                
+                // Action buttons
+                Row(
+                  children: [
+                    // Photos button (if past event or has photos)
+                    if (isPast || (playdate.photos != null && playdate.photos!.isNotEmpty))
+                      IconButton(
+                        icon: const Icon(Icons.photo_library, size: 20),
+                        tooltip: 'Photos',
+                        onPressed: () => _showPlaydatePhotos(playdate),
                       ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Text('Delete'),
+                    
+                    // Confirm button (if future event and not confirmed)
+                    if (!isPast && !playdate.isConfirmed)
+                      IconButton(
+                        icon: const Icon(Icons.check_circle_outline, size: 20),
+                        tooltip: 'Confirm',
+                        onPressed: () => _confirmPlaydate(playdate),
+                      ),
+                    
+                    // Edit button
+                    IconButton(
+                      icon: const Icon(Icons.edit, size: 20),
+                      tooltip: 'Edit',
+                      onPressed: () => _editPlaydate(playdate),
+                    ),
+                    
+                    // Delete button
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, size: 20),
+                      tooltip: 'Delete',
+                      onPressed: () => _deletePlaydate(playdate),
                     ),
                   ],
                 ),
               ],
             ),
-            
-            // Participants section
-            const SizedBox(height: 12),
-            const Text(
-              'Participants:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Wrap(
-              spacing: 8,
-              children: playdate.participants.map((name) {
-                return Chip(
-                  avatar: const CircleAvatar(
-                    child: Icon(Icons.pets, size: 16),
-                  ),
-                  label: Text(name),
-                  backgroundColor: Colors.grey.shade100,
-                );
-              }).toList(),
-            ),
-            
-            // Notes if available
-            if (playdate.notes != null && playdate.notes!.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                playdate.notes!,
-                style: const TextStyle(fontStyle: FontStyle.italic),
-              ),
-            ],
-            
-            // Status badge
-            const SizedBox(height: 8),
-            if (playdate.isConfirmed)
-              const Chip(
-                label: Text('Confirmed'),
-                backgroundColor: Colors.green,
-                labelStyle: TextStyle(color: Colors.white),
-              )
-            else if (isPast)
-              const Chip(
-                label: Text('Past'),
-                backgroundColor: Colors.grey,
-                labelStyle: TextStyle(color: Colors.white),
-              )
-            else
-              const Chip(
-                label: Text('Upcoming'),
-                backgroundColor: Colors.blue,
-                labelStyle: TextStyle(color: Colors.white),
-              ),
           ],
         ),
       ),
@@ -396,40 +412,230 @@ class _PlaydateScreenState extends State<PlaydateScreen> with SingleTickerProvid
     );
   }
 
-  void _handleMenuAction(String action, Playdate playdate) {
-    final playdateProvider = Provider.of<PlaydateProvider>(context, listen: false);
-    
-    switch (action) {
-      case 'edit':
-        _editPlaydate(playdate);
-        break;
-      case 'confirm':
-        playdateProvider.confirmPlaydate(playdate.id);
-        break;
-      case 'delete':
-        _showDeleteConfirmationDialog(playdate);
-        break;
+  void _showPlaydatePhotos(Playdate playdate) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Container(
+              padding: const EdgeInsets.all(16),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.7,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Playdate Photos',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add_a_photo),
+                        onPressed: () => _addPhotoToPlaydate(playdate),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: playdate.photos != null && playdate.photos!.isNotEmpty
+                        ? GridView.builder(
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                            ),
+                            itemCount: playdate.photos!.length,
+                            itemBuilder: (context, index) {
+                              final photoPath = playdate.photos![index];
+                              return InkWell(
+                                onTap: () => _viewPhoto(photoPath),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    color: Colors.grey[200],
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.photo,
+                                        size: 40,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          )
+                        : Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.photo_library,
+                                  size: 48,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No photos yet',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                ElevatedButton.icon(
+                                  onPressed: () => _addPhotoToPlaydate(playdate),
+                                  icon: const Icon(Icons.add_a_photo),
+                                  label: const Text('Add Photo'),
+                                ),
+                              ],
+                            ),
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _viewPhoto(String photoPath) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
+          backgroundColor: Colors.black,
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Placeholder image
+                const Icon(
+                  Icons.image,
+                  size: 150,
+                  color: Colors.white54,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Simulated photo: $photoPath',
+                  style: const TextStyle(color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _addPhotoToPlaydate(Playdate playdate) async {
+    try {
+      // For demo purposes, we'll simulate adding a sample photo path
+      // In a real app, you would use image_picker to get a real image
+      String samplePhotoPath = 'assets/sample_playdate_photo.jpg';
+      
+      // Show a dialog to explain the simulation
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Photo Simulation'),
+          content: const Text(
+            'In a real app, this would open the camera or photo gallery. '
+            'For demonstration purposes, we\'ll simulate adding a photo.'
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      
+      // Add the simulated photo to the playdate
+      final playdateProvider = Provider.of<PlaydateProvider>(context, listen: false);
+      await playdateProvider.addPhotoToPlaydate(playdate.id, samplePhotoPath);
+      
+      // Close bottom sheet if it's open
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Photo simulation added successfully')),
+      );
+      
+      // Reopen photo gallery to see the new photo
+      _showPlaydatePhotos(playdate);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error simulating photo: $e')),
+      );
     }
   }
 
-  void _showDeleteConfirmationDialog(Playdate playdate) {
+  void _confirmPlaydate(Playdate playdate) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Playdate'),
+        content: const Text('Are you sure you want to confirm this playdate?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              final provider = Provider.of<PlaydateProvider>(context, listen: false);
+              provider.confirmPlaydate(playdate.id);
+              
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Playdate confirmed')),
+              );
+            },
+            child: const Text('CONFIRM'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _deletePlaydate(Playdate playdate) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Playdate'),
-        content: Text('Are you sure you want to delete "${playdate.title}"?'),
+        content: const Text('Are you sure you want to delete this playdate?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('CANCEL'),
           ),
           TextButton(
             onPressed: () {
-              Provider.of<PlaydateProvider>(context, listen: false)
-                .deletePlaydate(playdate.id);
-              Navigator.pop(context);
+              Navigator.of(context).pop();
+              final provider = Provider.of<PlaydateProvider>(context, listen: false);
+              provider.deletePlaydate(playdate.id);
+              
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Playdate deleted')),
+              );
             },
-            child: const Text('Delete'),
+            child: const Text('DELETE'),
           ),
         ],
       ),
