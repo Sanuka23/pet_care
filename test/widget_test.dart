@@ -4,6 +4,7 @@ import 'package:pet_care/main.dart';
 import 'package:provider/provider.dart';
 import 'package:pet_care/services/pet_provider.dart';
 import 'package:pet_care/services/vaccination_provider.dart';
+import 'package:pet_care/services/appointment_provider.dart';
 import 'package:pet_care/screens/home_screen.dart';
 
 class MockPetProvider extends PetProvider {
@@ -34,12 +35,27 @@ class MockVaccinationProvider extends VaccinationProvider {
   }
 }
 
+class MockAppointmentProvider extends AppointmentProvider {
+  @override
+  Future<void> loadAppointments() async {
+    // Do nothing in tests
+    return;
+  }
+  
+  @override
+  Future<void> _saveAppointments() async {
+    // Do nothing in tests
+    return;
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   
   testWidgets('App initializes with providers correctly', (WidgetTester tester) async {
     final mockPetProvider = MockPetProvider();
     final mockVaccinationProvider = MockVaccinationProvider();
+    final mockAppointmentProvider = MockAppointmentProvider();
     
     // Build our app with mock providers
     await tester.pumpWidget(
@@ -47,6 +63,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<PetProvider>.value(value: mockPetProvider),
           ChangeNotifierProvider<VaccinationProvider>.value(value: mockVaccinationProvider),
+          ChangeNotifierProvider<AppointmentProvider>.value(value: mockAppointmentProvider),
         ],
         child: MaterialApp(
           home: HomeScreen(),

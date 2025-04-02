@@ -10,8 +10,10 @@ import 'playdate_screen.dart';
 import 'pet_profile_screen.dart';
 import '../services/pet_provider.dart';
 import '../services/vaccination_provider.dart';
+import '../services/appointment_provider.dart';
 import '../models/pet_model.dart';
 import '../models/vaccination_model.dart';
+import '../models/appointment_model.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -32,6 +34,8 @@ class _HomeScreenState extends State<HomeScreen> {
       Provider.of<PetProvider>(context, listen: false).loadPets();
       // Load vaccinations
       Provider.of<VaccinationProvider>(context, listen: false).loadVaccinations();
+      // Load appointments
+      Provider.of<AppointmentProvider>(context, listen: false).loadAppointments();
     });
   }
 
@@ -401,7 +405,61 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
     
-    // Default card without vaccination info
+    // If this is the Appointments card, show next appointment if available
+    if (title == 'Appointments') {
+      // Get current pet and appointment provider
+      final petProvider = Provider.of<PetProvider>(context, listen: false);
+      final appointmentProvider = Provider.of<AppointmentProvider>(context, listen: false);
+      final currentPet = petProvider.currentPet;
+      
+      if (currentPet != null) {
+        // Get next appointment for current pet
+        final nextAppointment = appointmentProvider.getNextAppointmentForPet(currentPet.id);
+        
+        if (nextAppointment != null) {
+          // Format date and time for display
+          final formattedDate = DateFormat('MMM dd').format(nextAppointment.dateTime);
+          final formattedTime = DateFormat('h:mm a').format(nextAppointment.dateTime);
+          
+          return InkWell(
+            onTap: onTap,
+            child: Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, size: 32, color: Theme.of(context).primaryColor),
+                    const SizedBox(height: 4),
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Next: $formattedDate $formattedTime',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    Text(
+                      nextAppointment.title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+      }
+    }
+    
+    // Default card without special info
     return InkWell(
       onTap: onTap,
       child: Card(
