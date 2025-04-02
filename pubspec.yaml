@@ -11,7 +11,6 @@ dependencies:
     sdk: flutter
   provider: ^6.0.5 # State management
   intl: ^0.18.1 # Date formatting
-  flutter_local_notifications: ^14.0.0 # Downgraded for compatibility
   shared_preferences: ^2.2.2
   table_calendar: ^3.0.9 # Calendar views
   image_picker: ^1.0.7 # For pet images
