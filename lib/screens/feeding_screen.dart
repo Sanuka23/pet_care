@@ -139,44 +139,71 @@ class _FeedingScreenState extends State<FeedingScreen> with SingleTickerProvider
         
         if (logs.isEmpty) {
           return const Center(
-            child: Text('No feeding logs yet. Add one!'),
+            child: Text('No feeding logs found. Tap the + button to add a log.'),
           );
         }
-        
-        // Sort logs by timestamp (most recent first)
-        logs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
         
         return ListView.builder(
           itemCount: logs.length,
           itemBuilder: (context, index) {
             final log = logs[index];
             return Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
               child: ListTile(
-                title: Text('${log.amount} ${log.unit} of ${log.foodType}'),
+                title: Text(log.foodType),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(DateFormat('MMM d, yyyy - h:mm a').format(log.timestamp)),
-                    if (log.notes != null) 
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text('Notes: ${log.notes}'),
+                    Text('${log.amount} ${log.unit}'),
+                    if (log.notes != null && log.notes!.isNotEmpty) 
+                      Text(log.notes!),
+                    Text(
+                      'Logged on: ${DateFormat('MMM d, yyyy - h:mm a').format(log.timestamp)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
                       ),
+                    ),
                   ],
                 ),
-                isThreeLine: log.notes != null,
-                leading: const CircleAvatar(
-                  child: Icon(Icons.fastfood),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () {
+                    _confirmDeleteLog(context, log);
+                  },
                 ),
-                onTap: () {
-                  // View log details
-                },
               ),
             );
           },
         );
       },
+    );
+  }
+
+  void _confirmDeleteLog(BuildContext context, FeedingLog log) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Log'),
+        content: const Text('Are you sure you want to delete this feeding log?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Provider.of<FeedingProvider>(context, listen: false)
+                  .deleteLog(log.id);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Feeding log deleted')),
+              );
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
     );
   }
 

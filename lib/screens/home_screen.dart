@@ -12,9 +12,19 @@ import '../services/vaccination_provider.dart';
 import '../services/appointment_provider.dart';
 import '../services/feeding_provider.dart';
 import '../services/playdate_provider.dart';
+import '../services/activity_provider.dart';
 import '../models/pet_model.dart';
 import '../models/vaccination_model.dart';
 import '../models/appointment_model.dart';
+import '../models/feeding_model.dart';
+import '../models/activity_model.dart';
+
+// String extension for capitalize
+extension StringExtension on String {
+  String capitalize() {
+    return isNotEmpty ? '${this[0].toUpperCase()}${substring(1)}' : '';
+  }
+}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -41,6 +51,8 @@ class _HomeScreenState extends State<HomeScreen> {
       Provider.of<FeedingProvider>(context, listen: false).loadData();
       // Load playdates
       Provider.of<PlaydateProvider>(context, listen: false).loadPlaydates();
+      // Load activities
+      Provider.of<ActivityProvider>(context, listen: false).loadActivities();
     });
   }
 
@@ -521,6 +533,165 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
     
+    // If this is the Feeding card, show next feeding time if available
+    if (title == 'Feeding') {
+      // Get current pet and feeding provider
+      final petProvider = Provider.of<PetProvider>(context, listen: false);
+      final feedingProvider = Provider.of<FeedingProvider>(context, listen: false);
+      final currentPet = petProvider.currentPet;
+      
+      if (currentPet != null) {
+        // Get active schedules for current pet
+        final activeSchedules = feedingProvider.getActiveSchedulesForPet(currentPet.id);
+        
+        if (activeSchedules.isNotEmpty) {
+          // Find the next feeding time
+          final now = DateTime.now();
+          final currentHour = now.hour;
+          final currentMinute = now.minute;
+          
+          // Flatten all feeding times from all schedules
+          final allFeedingTimes = <Map<String, dynamic>>[];
+          
+          for (final schedule in activeSchedules) {
+            for (final time in schedule.times) {
+              // Calculate when the next occurrence of this time will be
+              var nextOccurrence = DateTime(
+                now.year, 
+                now.month, 
+                now.day, 
+                time.hour, 
+                time.minute
+              );
+              
+              // If this time is already past for today, set it for tomorrow
+              if (time.hour < currentHour || (time.hour == currentHour && time.minute <= currentMinute)) {
+                nextOccurrence = nextOccurrence.add(const Duration(days: 1));
+              }
+              
+              allFeedingTimes.add({
+                'schedule': schedule,
+                'time': time,
+                'nextOccurrence': nextOccurrence,
+              });
+            }
+          }
+          
+          // Sort by next occurrence time
+          allFeedingTimes.sort((a, b) {
+            return (a['nextOccurrence'] as DateTime).compareTo(b['nextOccurrence'] as DateTime);
+          });
+          
+          if (allFeedingTimes.isNotEmpty) {
+            final nextFeeding = allFeedingTimes.first;
+            final schedule = nextFeeding['schedule'] as FeedingSchedule;
+            final nextOccurrence = nextFeeding['nextOccurrence'] as DateTime;
+            
+            // Format date and time for display
+            final isToday = nextOccurrence.day == now.day && 
+                          nextOccurrence.month == now.month &&
+                          nextOccurrence.year == now.year;
+            
+            final formattedDate = isToday ? 'Today' : 'Tomorrow';
+            final formattedTime = DateFormat('h:mm a').format(nextOccurrence);
+            
+            return InkWell(
+              onTap: onTap,
+              child: Card(
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, size: 32, color: Theme.of(context).primaryColor),
+                      const SizedBox(height: 4),
+                      Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Next: $formattedDate, $formattedTime',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      Text(
+                        schedule.name,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 12),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+        }
+      }
+    }
+    
+    // If this is the Activity card, show next activity if available
+    if (title == 'Activity') {
+      // Get current pet and activity provider
+      final petProvider = Provider.of<PetProvider>(context, listen: false);
+      final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
+      final currentPet = petProvider.currentPet;
+      
+      if (currentPet != null) {
+        // Get upcoming activities for current pet
+        final upcomingActivities = activityProvider.getUpcomingActivitiesForPet(currentPet.id);
+        
+        // Sort by date to get the next one
+        if (upcomingActivities.isNotEmpty) {
+          upcomingActivities.sort((a, b) => a.date.compareTo(b.date));
+          final nextActivity = upcomingActivities.first;
+          
+          // Format date and time for display
+          final formattedDate = DateFormat('MMM dd').format(nextActivity.date);
+          final formattedTime = DateFormat('h:mm a').format(nextActivity.date);
+          
+          return InkWell(
+            onTap: onTap,
+            child: Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, size: 32, color: Theme.of(context).primaryColor),
+                    const SizedBox(height: 4),
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Next: $formattedDate $formattedTime',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    Text(
+                      '${nextActivity.name} (${nextActivity.type})',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+      }
+    }
+    
     // Default card without special info
     return InkWell(
       onTap: onTap,
@@ -571,8 +742,8 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
         
-        return Consumer2<AppointmentProvider, PlaydateProvider>(
-          builder: (context, appointmentProvider, playdateProvider, child) {
+        return Consumer4<AppointmentProvider, PlaydateProvider, FeedingProvider, ActivityProvider>(
+          builder: (context, appointmentProvider, playdateProvider, feedingProvider, activityProvider, child) {
             // Get recent completed appointments
             final completedAppointments = appointmentProvider.appointments
                 .where((appointment) => 
@@ -594,6 +765,25 @@ class _HomeScreenState extends State<HomeScreen> {
             
             final recentPlaydates = pastPlaydates.take(3).toList();
             
+            // Get recent feeding logs
+            final recentLogs = feedingProvider.getRecentLogsForPet(currentPet.id);
+            
+            // Sort by timestamp (newest first)
+            recentLogs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+            
+            final recentFeedingLogs = recentLogs.take(3).toList();
+            
+            // Get recent activity logs
+            final recentActivities = activityProvider.getRecentActivitiesForPet(currentPet.id);
+            
+            // Filter completed activities
+            final completedActivities = recentActivities.where((activity) => activity.isCompleted).toList();
+            
+            // Sort by date (newest first)
+            completedActivities.sort((a, b) => b.date.compareTo(a.date));
+            
+            final recentActivityLogs = completedActivities.take(3).toList();
+            
             // Combine activities
             final allActivities = [
               ...recentAppointments.map((appointment) => {
@@ -607,6 +797,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 'title': playdate.title,
                 'date': playdate.date,
                 'icon': Icons.people,
+              }),
+              ...recentFeedingLogs.map((log) => {
+                'type': 'feeding',
+                'title': '${log.amount} ${log.unit} of ${log.foodType}',
+                'date': log.timestamp,
+                'icon': Icons.restaurant,
+              }),
+              ...recentActivityLogs.map((activity) => {
+                'type': 'activity',
+                'title': '${activity.name} (${activity.durationMinutes} min)',
+                'date': activity.date,
+                'icon': Icons.directions_walk,
               }),
             ];
             
@@ -660,7 +862,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       DateFormat('MMM dd, yyyy').format(activity['date'] as DateTime),
                     ),
                     trailing: Text(
-                      activity['type'] as String == 'appointment' ? 'Appointment' : 'Playdate',
+                      _getActivityTypeLabel(activity['type'] as String),
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 12,
@@ -674,5 +876,20 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
+  }
+  
+  String _getActivityTypeLabel(String type) {
+    switch (type) {
+      case 'appointment':
+        return 'Appointment';
+      case 'playdate':
+        return 'Playdate';
+      case 'feeding':
+        return 'Feeding';
+      case 'activity':
+        return 'Activity';
+      default:
+        return type.capitalize();
+    }
   }
 } 
