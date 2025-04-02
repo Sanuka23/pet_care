@@ -9,6 +9,7 @@ import 'services/activity_provider.dart';
 import 'services/playdate_provider.dart';
 import 'services/notification_service.dart';
 
+//test commit
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
