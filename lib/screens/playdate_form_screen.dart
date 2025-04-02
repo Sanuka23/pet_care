@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
+import 'dart:math'; // For random ID generation
 import 'package:intl/intl.dart';
 import '../models/playdate_model.dart';
 import '../services/playdate_provider.dart';
@@ -37,7 +37,6 @@ class _PlaydateFormScreenState extends State<PlaydateFormScreen> {
   final TextEditingController _participantController = TextEditingController();
   
   bool _isEditing = false;
-  final _uuid = const Uuid();
 
   @override
   void initState() {
@@ -162,7 +161,7 @@ class _PlaydateFormScreenState extends State<PlaydateFormScreen> {
       } else {
         // Create new playdate
         final newPlaydate = Playdate(
-          id: _uuid.v4(),
+          id: generateRandomId(),
           petId: widget.petId,
           title: _titleController.text,
           date: playdateDateTime,
@@ -432,4 +431,10 @@ class _PlaydateFormScreenState extends State<PlaydateFormScreen> {
       }).toList(),
     );
   }
+}
+
+String generateRandomId() {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  final random = Random();
+  return List.generate(20, (index) => chars[random.nextInt(chars.length)]).join();
 } 

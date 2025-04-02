@@ -1,12 +1,18 @@
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
-import 'package:uuid/uuid.dart';
+import 'dart:math'; // For random ID generation
 import '../models/feeding_model.dart';
 
 class FeedingProvider with ChangeNotifier {
   List<FeedingSchedule> _schedules = [];
   List<FeedingLog> _logs = [];
-  final Uuid _uuid = const Uuid();
+  
+  // Generate a random ID (replaces UUID)
+  String _generateRandomId() {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    final random = Random();
+    return List.generate(20, (index) => chars[random.nextInt(chars.length)]).join();
+  }
 
   // Getters
   List<FeedingSchedule> get schedules => _schedules;
@@ -56,7 +62,7 @@ class FeedingProvider with ChangeNotifier {
   Future<void> addSchedule(FeedingSchedule schedule) async {
     // Generate ID if not provided
     final scheduleWithId = schedule.id.isEmpty 
-        ? schedule.copyWith(id: _uuid.v4()) 
+        ? schedule.copyWith(id: _generateRandomId()) 
         : schedule;
         
     _schedules.add(scheduleWithId);
@@ -101,7 +107,7 @@ class FeedingProvider with ChangeNotifier {
   Future<void> addLog(FeedingLog log) async {
     // Generate ID if not provided
     final logWithId = log.id.isEmpty 
-        ? log.copyWith(id: _uuid.v4()) 
+        ? log.copyWith(id: _generateRandomId()) 
         : log;
         
     _logs.add(logWithId);

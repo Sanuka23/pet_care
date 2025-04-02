@@ -1,11 +1,17 @@
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
-import 'package:uuid/uuid.dart';
+import 'dart:math'; // For random ID generation
 import '../models/playdate_model.dart';
 
 class PlaydateProvider with ChangeNotifier {
   List<Playdate> _playdates = [];
-  final Uuid _uuid = const Uuid();
+  
+  // Generate a random ID (replaces UUID)
+  String _generateRandomId() {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    final random = Random();
+    return List.generate(20, (index) => chars[random.nextInt(chars.length)]).join();
+  }
 
   // Getters
   List<Playdate> get playdates => _playdates;
@@ -52,7 +58,7 @@ class PlaydateProvider with ChangeNotifier {
   Future<void> addPlaydate(Playdate playdate) async {
     // Generate ID if not provided
     final playdateWithId = playdate.id.isEmpty 
-        ? playdate.copyWith(id: _uuid.v4()) 
+        ? playdate.copyWith(id: _generateRandomId()) 
         : playdate;
         
     _playdates.add(playdateWithId);

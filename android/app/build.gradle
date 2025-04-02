@@ -8,8 +8,8 @@ plugins {
 android {
     namespace "com.example.pet_care"
     compileSdk = 34
-    ndkVersion flutter.ndkVersion
-
+    ndkVersion = "29.0.13113456" // Exact version found in SDK directory
+    
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8

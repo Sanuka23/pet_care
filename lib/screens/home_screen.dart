@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'dart:io';
 import 'vaccination_screen.dart';
 import 'appointment_screen.dart';
 import 'feeding_screen.dart';
@@ -11,6 +10,7 @@ import 'pet_profile_screen.dart';
 import '../services/pet_provider.dart';
 import '../services/vaccination_provider.dart';
 import '../services/appointment_provider.dart';
+import '../services/feeding_provider.dart';
 import '../services/playdate_provider.dart';
 import '../models/pet_model.dart';
 import '../models/vaccination_model.dart';
@@ -37,6 +37,8 @@ class _HomeScreenState extends State<HomeScreen> {
       Provider.of<VaccinationProvider>(context, listen: false).loadVaccinations();
       // Load appointments
       Provider.of<AppointmentProvider>(context, listen: false).loadAppointments();
+      // Load feeding data
+      Provider.of<FeedingProvider>(context, listen: false).loadData();
       // Load playdates
       Provider.of<PlaydateProvider>(context, listen: false).loadPlaydates();
     });
@@ -116,13 +118,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const Divider(),
             ...pets.map((pet) => ListTile(
-              leading: pet.imageUrl != null
-                ? CircleAvatar(
-                    backgroundImage: FileImage(File(pet.imageUrl!)),
-                  )
-                : const CircleAvatar(
-                    child: Icon(Icons.pets),
-                  ),
+              leading: CircleAvatar(
+                backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                child: Icon(Icons.pets, color: Theme.of(context).primaryColor),
+              ),
               title: Text(pet.name),
               subtitle: Text('${pet.breed}, ${pet.age} years'),
               onTap: () {
@@ -210,21 +209,23 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            if (pet.imageUrl != null)
-              CircleAvatar(
-                radius: 50,
-                backgroundImage: FileImage(File(pet.imageUrl!)),
-              )
-            else
-              const CircleAvatar(
-                radius: 50,
-                backgroundColor: Colors.grey,
-                child: Icon(Icons.pets, size: 50, color: Colors.white),
-              ),
-            const SizedBox(height: 10),
-            Text(
-              pet.name,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 40,
+                  backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                  child: Icon(
+                    Icons.pets,
+                    size: 40,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  pet.name,
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
             const SizedBox(height: 5),
             Text(
