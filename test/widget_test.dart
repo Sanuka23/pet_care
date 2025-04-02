@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:pet_care/services/pet_provider.dart';
 import 'package:pet_care/services/vaccination_provider.dart';
 import 'package:pet_care/services/appointment_provider.dart';
+import 'package:pet_care/services/feeding_provider.dart';
 import 'package:pet_care/screens/home_screen.dart';
 
 class MockPetProvider extends PetProvider {
@@ -49,6 +50,10 @@ class MockAppointmentProvider extends AppointmentProvider {
   }
 }
 
+class MockFeedingProvider extends FeedingProvider {
+  MockFeedingProvider() : super(isTest: true);
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   
@@ -56,6 +61,7 @@ void main() {
     final mockPetProvider = MockPetProvider();
     final mockVaccinationProvider = MockVaccinationProvider();
     final mockAppointmentProvider = MockAppointmentProvider();
+    final mockFeedingProvider = MockFeedingProvider();
     
     // Build our app with mock providers
     await tester.pumpWidget(
@@ -64,6 +70,7 @@ void main() {
           ChangeNotifierProvider<PetProvider>.value(value: mockPetProvider),
           ChangeNotifierProvider<VaccinationProvider>.value(value: mockVaccinationProvider),
           ChangeNotifierProvider<AppointmentProvider>.value(value: mockAppointmentProvider),
+          ChangeNotifierProvider<FeedingProvider>.value(value: mockFeedingProvider),
         ],
         child: MaterialApp(
           home: HomeScreen(),

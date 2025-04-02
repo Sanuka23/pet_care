@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
+import '../services/feeding_provider.dart';
 import 'vaccination_screen.dart';
 import 'appointment_screen.dart';
 import 'feeding_screen.dart';
@@ -447,6 +448,60 @@ class _HomeScreenState extends State<HomeScreen> {
                       nextAppointment.title,
                       textAlign: TextAlign.center,
                       style: const TextStyle(fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+      }
+    }
+    
+    // If this is the Feeding card, show next feeding time if available
+    if (title == 'Feeding') {
+      // Get current pet and feeding provider
+      final petProvider = Provider.of<PetProvider>(context, listen: false);
+      final feedingProvider = Provider.of<FeedingProvider>(context, listen: false);
+      final currentPet = petProvider.currentPet;
+      
+      if (currentPet != null) {
+        // Get next feeding time for current pet
+        final nextFeedingTime = feedingProvider.getNextFeedingTime(currentPet.id);
+        
+        if (nextFeedingTime != null) {
+          // Format time for display
+          final formattedTime = DateFormat('h:mm a').format(nextFeedingTime);
+          final isTomorrow = nextFeedingTime.day != DateTime.now().day;
+          
+          return InkWell(
+            onTap: onTap,
+            child: Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, size: 32, color: Theme.of(context).primaryColor),
+                    const SizedBox(height: 4),
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Next: $formattedTime${isTomorrow ? ' (tomorrow)' : ''}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    const Text(
+                      'Scheduled Feeding',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),

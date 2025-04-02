@@ -4,6 +4,7 @@ import 'screens/home_screen.dart';
 import 'services/pet_provider.dart';
 import 'services/vaccination_provider.dart';
 import 'services/appointment_provider.dart';
+import 'services/feeding_provider.dart';
 
 void main() {
   runApp(
@@ -12,6 +13,7 @@ void main() {
         ChangeNotifierProvider(create: (context) => PetProvider()),
         ChangeNotifierProvider(create: (context) => VaccinationProvider()),
         ChangeNotifierProvider(create: (context) => AppointmentProvider()),
+        ChangeNotifierProvider(create: (context) => FeedingProvider()),
       ],
       child: const PetCareApp(),
     ),
