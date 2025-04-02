@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../models/pet_model.dart';
 
@@ -25,8 +24,8 @@ class PetProvider with ChangeNotifier {
     // Set as current pet
     _currentPet = pet;
     
-    // Save pets to local storage
-    _savePets();
+    // For testing, we'll skip saving to storage
+    // _savePets();
     
     notifyListeners();
   }
@@ -40,8 +39,8 @@ class PetProvider with ChangeNotifier {
       _currentPet = _pets.isNotEmpty ? _pets[0] : null;
     }
     
-    // Save pets to local storage
-    _savePets();
+    // For testing, we'll skip saving to storage
+    // _savePets();
     
     notifyListeners();
   }
@@ -54,32 +53,38 @@ class PetProvider with ChangeNotifier {
 
   // Load pets from local storage
   Future<void> loadPets() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final petsJson = prefs.getStringList('pets') ?? [];
+    // For testing, we'll add some mock data instead of loading from storage
+    if (_pets.isEmpty) {
+      _pets = [
+        Pet(
+          id: '1',
+          name: 'Buddy',
+          breed: 'Golden Retriever',
+          age: 3,
+          weight: 25.5,
+        ),
+        Pet(
+          id: '2',
+          name: 'Max',
+          breed: 'German Shepherd',
+          age: 2,
+          weight: 30.0,
+        ),
+      ];
       
-      _pets = petsJson.map((json) => _petFromJson(jsonDecode(json))).toList();
-      
+      // Set first pet as current
       if (_pets.isNotEmpty && _currentPet == null) {
         _currentPet = _pets[0];
       }
       
       notifyListeners();
-    } catch (e) {
-      debugPrint('Error loading pets: $e');
     }
   }
 
-  // Save pets to local storage
+  // Save pets to local storage - not used for testing
   Future<void> _savePets() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final petsJson = _pets.map((pet) => jsonEncode(_petToJson(pet))).toList();
-      
-      await prefs.setStringList('pets', petsJson);
-    } catch (e) {
-      debugPrint('Error saving pets: $e');
-    }
+    // For testing, we'll skip saving to storage
+    debugPrint('Saving pets (skipped for testing)');
   }
 
   // Convert Pet to JSON

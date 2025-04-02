@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import '../models/pet_model.dart';
 import '../services/pet_provider.dart';
 
@@ -21,9 +19,6 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
   final _ageController = TextEditingController();
   final _weightController = TextEditingController();
   final _specialNeedsController = TextEditingController();
-  
-  File? _imageFile;
-  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -48,17 +43,6 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    final XFile? pickedImage =
-        await _picker.pickImage(source: ImageSource.gallery);
-    
-    if (pickedImage != null) {
-      setState(() {
-        _imageFile = File(pickedImage.path);
-      });
-    }
-  }
-
   void _savePet() {
     if (_formKey.currentState!.validate()) {
       // Create a new pet with the form data
@@ -68,7 +52,6 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
         breed: _breedController.text,
         age: int.parse(_ageController.text),
         weight: double.parse(_weightController.text),
-        imageUrl: _imageFile?.path,
         specialNeeds: _specialNeedsController.text.isNotEmpty
             ? _specialNeedsController.text.split(',').map((s) => s.trim()).toList()
             : null,
@@ -95,22 +78,12 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Pet Image
+              // Pet Avatar Placeholder
               Center(
-                child: GestureDetector(
-                  onTap: _pickImage,
-                  child: CircleAvatar(
-                    radius: 60,
-                    backgroundColor: Colors.grey.shade200,
-                    backgroundImage: _imageFile != null 
-                      ? FileImage(_imageFile!) 
-                      : widget.pet?.imageUrl != null 
-                          ? FileImage(File(widget.pet!.imageUrl!)) as ImageProvider
-                          : null,
-                    child: _imageFile == null && widget.pet?.imageUrl == null
-                      ? const Icon(Icons.add_a_photo, size: 40, color: Colors.grey)
-                      : null,
-                  ),
+                child: CircleAvatar(
+                  radius: 60,
+                  backgroundColor: Colors.grey.shade200,
+                  child: const Icon(Icons.pets, size: 60, color: Colors.grey),
                 ),
               ),
               const SizedBox(height: 16),
