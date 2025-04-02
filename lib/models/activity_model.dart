@@ -1,5 +1,3 @@
-import 'package:uuid/uuid.dart';
-
 class Activity {
   final String id;
   final String petId;

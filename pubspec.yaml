@@ -1,10 +1,10 @@
 name: pet_care
 description: "A new Flutter project."
 publish_to: 'none'
-version: 0.1.0
+version: 0.1.0+1
 
 environment:
-  sdk: ^3.5.3
+  sdk: '>=3.0.6 <4.0.0'
 
 dependencies:
   flutter:
@@ -14,11 +14,19 @@ dependencies:
   table_calendar: ^3.0.9 # Calendar views
   flutter_svg: ^2.0.9 # SVG support
   uuid: ^4.3.2 # For generating unique IDs
+  cupertino_icons: ^1.0.2
+  image_picker: ^1.0.4
+  path_provider: ^2.1.1
+  shared_preferences: ^2.2.1
+  flutter_local_notifications: ^14.0.0+1
+  timezone: ^0.9.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
+  flutter_lints: ^2.0.0
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/

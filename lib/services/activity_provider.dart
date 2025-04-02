@@ -1,11 +1,19 @@
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
-import 'package:uuid/uuid.dart';
+import 'dart:math';
 import '../models/activity_model.dart';
+import 'notification_service.dart';
 
 class ActivityProvider with ChangeNotifier {
   List<Activity> _activities = [];
-  final Uuid _uuid = const Uuid();
+  final NotificationService _notificationService = NotificationService();
+  
+  // Generate a random ID (replaces UUID)
+  String _generateRandomId() {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    final random = Random();
+    return List.generate(20, (index) => chars[random.nextInt(chars.length)]).join();
+  }
 
   // Getters
   List<Activity> get activities => _activities;
@@ -43,23 +51,33 @@ class ActivityProvider with ChangeNotifier {
   }
 
   // Add a new activity
-  Future<void> addActivity(Activity activity) async {
+  Future<void> addActivity(Activity activity, {int? reminderMinutesBefore}) async {
     // Generate ID if not provided
     final activityWithId = activity.id.isEmpty 
-        ? activity.copyWith(id: _uuid.v4()) 
+        ? activity.copyWith(id: _generateRandomId()) 
         : activity;
         
     _activities.add(activityWithId);
+    
+    // Schedule notification for this activity if reminder is enabled
+    if (reminderMinutesBefore != null && !activityWithId.isCompleted) {
+      await _scheduleNotification(activityWithId, reminderMinutesBefore);
+    }
+    
     // For testing, we'll skip saving to storage
     // await _saveActivities();
     notifyListeners();
   }
 
   // Update an existing activity
-  Future<void> updateActivity(Activity activity) async {
+  Future<void> updateActivity(Activity activity, {int? reminderMinutesBefore}) async {
     final index = _activities.indexWhere((a) => a.id == activity.id);
     if (index >= 0) {
       _activities[index] = activity;
+      
+      // Update notification for this activity
+      await _updateNotification(activity, reminderMinutesBefore);
+      
       // For testing, we'll skip saving to storage
       // await _saveActivities();
       notifyListeners();
@@ -69,6 +87,10 @@ class ActivityProvider with ChangeNotifier {
   // Delete an activity
   Future<void> deleteActivity(String id) async {
     _activities.removeWhere((a) => a.id == id);
+    
+    // Cancel notification for this activity
+    await _cancelNotification(id);
+    
     // For testing, we'll skip saving to storage
     // await _saveActivities();
     notifyListeners();
@@ -79,6 +101,10 @@ class ActivityProvider with ChangeNotifier {
     final index = _activities.indexWhere((a) => a.id == id);
     if (index >= 0) {
       _activities[index] = _activities[index].copyWith(isCompleted: true);
+      
+      // Cancel notification as activity is completed
+      await _cancelNotification(id);
+      
       // For testing, we'll skip saving to storage
       // await _saveActivities();
       notifyListeners();
@@ -98,9 +124,42 @@ class ActivityProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+  
+  // Schedule a notification for an activity
+  Future<void> _scheduleNotification(Activity activity, int minutesBefore) async {
+    try {
+      await _notificationService.scheduleActivityReminder(activity, minutesBefore);
+    } catch (e) {
+      debugPrint('Error scheduling notification: $e');
+    }
+  }
+  
+  // Update a scheduled notification
+  Future<void> _updateNotification(Activity activity, int? minutesBefore) async {
+    // First cancel existing notification
+    await _cancelNotification(activity.id);
+    
+    // Then schedule a new one if needed and activity is not completed
+    if (minutesBefore != null && !activity.isCompleted) {
+      await _scheduleNotification(activity, minutesBefore);
+    }
+  }
+  
+  // Cancel a scheduled notification
+  Future<void> _cancelNotification(String activityId) async {
+    try {
+      await _notificationService.cancelActivityReminder(activityId);
+    } catch (e) {
+      debugPrint('Error canceling notification: $e');
+    }
+  }
 
   // Load activities from storage
   Future<void> loadActivities() async {
+    // Initialize notifications
+    await _notificationService.initialize();
+    await _notificationService.requestPermissions();
+    
     // For testing, we'll add some mock data instead of loading from storage
     if (_activities.isEmpty) {
       final now = DateTime.now();
